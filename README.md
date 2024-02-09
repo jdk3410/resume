@@ -1,7 +1,7 @@
 # README.md
 Simple resume site written in React hosted in a Docker container, running on AWS ECS
 
-- TODO:
+  TODO:
 - [ ] Write better todo
 - [ ] Set up SSL cert in docker/dockerfile (Needs letsencrypt)
 - [ ] Set up GitHub actions to re-build image when changes are made
