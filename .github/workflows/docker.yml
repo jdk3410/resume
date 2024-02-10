@@ -53,3 +53,27 @@ jobs:
     - name: Update service deployment configuration
       run: |
         aws ecs update-service --cluster resume --service resume --deployment-configuration '{"maximumPercent":200, "minimumHealthyPercent":100}'
+
+    - name: Update Route 53 DNS record
+      run: |
+        # Get the new IP address
+        NEW_IP=$(aws ecs describe-tasks --cluster resume --tasks ${{ steps.register.outputs.arn }} --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' --output text | xargs aws ec2 describe-network-interfaces --network-interface-ids | jq -r '.NetworkInterfaces[0].Association.PublicIp')
+
+        # Update the DNS record
+        aws route53 change-resource-record-sets --hosted-zone-id ${{ secrets.HOSTED_ZONE_ID }} --change-batch '{
+            "Changes": [
+                {
+                    "Action": "UPSERT",
+                    "ResourceRecordSet": {
+                        "Name": "jdk3410.com",
+                        "Type": "A",
+                        "TTL": 300,
+                        "ResourceRecords": [
+                            {
+                                "Value": "'$NEW_IP'"
+                            }
+                        ]
+                    }
+                }
+            ]
+        }'
