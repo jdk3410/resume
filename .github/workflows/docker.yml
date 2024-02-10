@@ -48,13 +48,9 @@ jobs:
       run: |
         aws ecs update-service --cluster resume --service resume --task-definition ${{ steps.register.outputs.arn }}
 
-    - name: Update service deployment configuration
+    - name: Wait for service to be stable
       run: |
-        aws ecs update-service --cluster resume --service resume --deployment-configuration '{"maximumPercent":200, "minimumHealthyPercent":100}'
-
-    - name: Wait for task to be running
-      run: |
-        aws ecs wait tasks-running --cluster resume --tasks ${{ steps.register.outputs.arn }}
+        aws ecs wait services-stable --cluster resume --services resume
 
     - name: Get running task ARN
       id: get-task
