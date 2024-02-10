@@ -32,13 +32,18 @@ jobs:
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-# remove awscli 
+    - name: Print ECR_REGISTRY, ECR_REPOSITORY, and IMAGE_TAG
+      run: |
+        echo "ECR_REGISTRY: $ECR_REGISTRY"
+        echo "ECR_REPOSITORY: $ECR_REPOSITORY"
+        echo "IMAGE_TAG: $IMAGE_TAG"
+
 # mask ids | sed -r 's/[0-9]{12}/************/g'    
     
     - name: Register new task definition
       id: register
       run: |
-        TASK_DEF=$(aws ecs register-task-definition --family resume --requires-compatibilities FARGATE --network-mode awsvpc --execution-role-arn ${{ secrets.ECS_TASK_EXECUTION_ROLE_ARN }} --cpu 256 --memory 512 --container-definitions "[{\"name\":\"resume\",\"image\":\"$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG\",\"portMappings\":[{\"containerPort\":80,\"hostPort\":80,\"protocol\":\"tcp\"},{\"containerPort\":443,\"hostPort\":443,\"protocol\":\"tcp\"}],\"logConfiguration\":{\"logDriver\":\"awslogs\",\"options\":{\"awslogs-create-group\":\"true\",\"awslogs-group\":\"/ecs/resume\",\"awslogs-region\":\"us-east-1\",\"awslogs-stream-prefix\":\"ecs\"}}}]")
+        TASK_DEF=$(aws ecs register-task-definition --family resume --requires-compatibilities FARGATE --network-mode awsvpc --execution-role-arn ${{ secrets.ECS_TASK_EXECUTION_ROLE_ARN }} --cpu 512 --memory 1024 --container-definitions "[{\"name\":\"resume\",\"image\":\"$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG\",\"portMappings\":[{\"containerPort\":80,\"hostPort\":80,\"protocol\":\"tcp\"},{\"containerPort\":443,\"hostPort\":443,\"protocol\":\"tcp\"}],\"logConfiguration\":{\"logDriver\":\"awslogs\",\"options\":{\"awslogs-create-group\":\"true\",\"awslogs-group\":\"/ecs/resume\",\"awslogs-region\":\"us-east-1\",\"awslogs-stream-prefix\":\"ecs\"}}}]")
         TASK_DEF_ARN=$(echo $TASK_DEF | jq -r '.taskDefinition.taskDefinitionArn')
         echo "::set-output name=arn::$TASK_DEF_ARN"
 
