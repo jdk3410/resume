@@ -16,4 +16,4 @@ Simple resume site written in React hosted in a Docker container, running on AWS
 - [ ] Add variables for hard coded links
 - [ ] Only actually rebuild when necesary (don't need to rebuild the image when we commit the README)
 - [ ] dev/master separation
-- [ ] Clean up resources if build fails    
+- [ ] Clean up resources if build fails     
