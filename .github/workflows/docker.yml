@@ -52,10 +52,15 @@ jobs:
       run: |
         aws ecs update-service --cluster resume --service resume --deployment-configuration '{"maximumPercent":200, "minimumHealthyPercent":100}'
 
+    - name: Wait for task to be running
+      run: |
+        aws ecs wait tasks-running --cluster resume --tasks ${{ steps.register.outputs.arn }}
+
     - name: Get running task ARN
       id: get-task
       run: |
-        TASK_ARN=$(aws ecs list-tasks --cluster resume --family resume --desired-status RUNNING --query 'taskArns[0]' --output text)
+        TASK_ARNS=$(aws ecs list-tasks --cluster resume --family resume --desired-status RUNNING --query 'taskArns' --output text)
+        TASK_ARN=$(aws ecs describe-tasks --cluster resume --tasks $TASK_ARNS --query 'sort_by(tasks,&startedAt)[::-1][0].taskArn' --output text)
         echo "::set-output name=arn::$TASK_ARN"
 
     - name: Update Route 53 DNS record
