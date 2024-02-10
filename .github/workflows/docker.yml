@@ -38,7 +38,7 @@ jobs:
     - name: Register new task definition
       id: register
       run: |
-        TASK_DEF=$(aws ecs register-task-definition --family resume --container-definitions "[{\"name\":\"resume\",\"image\":\"$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG\"}]")
+        TASK_DEF=$(aws ecs register-task-definition --family resume --container-definitions "[{\"name\":\"resume\",\"image\":\"$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG\",\"memory\":512}]")
         TASK_DEF_ARN=$(echo $TASK_DEF | jq -r '.taskDefinition.taskDefinitionArn')
         echo "::set-output name=arn::$TASK_DEF_ARN"
 
