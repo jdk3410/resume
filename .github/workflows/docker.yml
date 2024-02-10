@@ -8,20 +8,19 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env: ${{ secrets.AWS_REGION }}
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v2
 
     - name: Login to Amazon ECR
       id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v2
-      
+      uses: aws-actions/amazon-ecr-login@v1
 
     - name: Build, tag, and push image to Amazon ECR
       env:
-        ECR_REGION: ${{ steps.login-ecr.outputs.region }}
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         IMAGE_TAG: ${{ github.sha }}
