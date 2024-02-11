@@ -1,4 +1,4 @@
-# Dockerfile .  
+# Dockerfile
   
 
 # Stage 1 - Build stage
@@ -20,4 +20,5 @@ EXPOSE 80
 EXPOSE 443
 CMD ["nginx", "-g", "daemon off;"]
 # Building without certbot for now, need to manually copy certs to /etc/nginx/certs
+# Also need to add variables for the certbot command
 #CMD ["sh", "-c", "certbot certonly --force-renew --dns-route53 -d jdk3410.com -d '*.jdk3410.com' --agree-tos --email jkellner333@gmail.com --non-interactive && mkdir -p /etc/nginx/certs/ && cp /etc/letsencrypt/live/jdk3410.com/fullchain.pem /etc/nginx/certs/ && cp /etc/letsencrypt/live/jdk3410.com/privkey.pem /etc/nginx/certs/ && nginx -g 'daemon off;'"]
