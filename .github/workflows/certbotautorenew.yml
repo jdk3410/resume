@@ -23,8 +23,11 @@ jobs:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ secrets.AWS_REGION }}
+    
+    - name: List directory contents
+      run: ls -al ./letsencrypt/live/jdk3410.com/
 
     - name: Copy certificates to S3
       run: |
-        aws s3 cp ./etc/letsencrypt/live/jdk3410.com/fullchain.pem s3://jdk3410certs/
-        aws s3 cp ./etc/letsencrypt/live/jdk3410.com/privkey.pem s3://jdk3410certs/
+        aws s3 cp ./letsencrypt/live/jdk3410.com/fullchain.pem s3://jdk3410certs/
+        aws s3 cp ./letsencrypt/live/jdk3410.com/privkey.pem s3://jdk3410certs/
