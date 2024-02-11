@@ -5,7 +5,10 @@ on:
     paths-ignore:
       - 'README.md'
       - '.github/**'
-      
+  schedule:
+    - cron: '0 13 1 * *' # We need to rebuild this monthly to get the latest security updates and to get the new LetsEncrypt certificate
+  workflow_dispatch: # Manually run the workflow
+    
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -20,6 +23,19 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Copy certificates from S3
+      run: |
+        mkdir -p ./letsencrypt/live/jdk3410.com/
+        aws s3 cp s3://jdk3410certs/fullchain.pem ./letsencrypt/live/jdk3410.com/fullchain.pem
+        aws s3 cp s3://jdk3410certs/privkey.pem ./letsencrypt/live/jdk3410.com/privkey.pem
 
     - name: Login to Amazon ECR
       id: login-ecr
