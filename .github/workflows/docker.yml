@@ -31,12 +31,6 @@ jobs:
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-    - name: Print ECR_REGISTRY, ECR_REPOSITORY, and IMAGE_TAG
-      run: |
-        echo "ECR_REGISTRY: $ECR_REGISTRY"
-        echo "ECR_REPOSITORY: $ECR_REPOSITORY"
-        echo "IMAGE_TAG: $IMAGE_TAG"
-
     - name: Register new task definition
       id: register
       run: |
@@ -46,23 +40,23 @@ jobs:
 
     - name: Update ECS service
       run: |
-        aws ecs update-service --cluster resume --service resume --task-definition ${{ env.TASK_DEF_ARN }} | sed 's/[0-9]\{12\}/***/g'
+        aws ecs update-service --cluster resume --service resume --task-definition ${{ env.TASK_DEF_ARN }}
 
     - name: Wait for service to be stable
       run: |
-        aws ecs wait services-stable --cluster resume --services resume --max-attempts 120 | sed 's/[0-9]\{12\}/***/g'
+        aws ecs wait services-stable --cluster resume --services resume
 
     - name: Get running task ARN
       id: get-task
       run: |
-        TASK_ARNS=$(aws ecs list-tasks --cluster resume --family resume --desired-status RUNNING --query 'taskArns' --output text | sed 's/[0-9]\{12\}/***/g')
-        TASK_ARN=$(aws ecs describe-tasks --cluster resume --tasks $TASK_ARNS --query 'sort_by(tasks,&startedAt)[::-1][0].taskArn' --output text | sed 's/[0-9]\{12\}/***/g')
+        TASK_ARNS=$(aws ecs list-tasks --cluster resume --family resume --desired-status RUNNING --query 'taskArns' --output text)
+        TASK_ARN=$(aws ecs describe-tasks --cluster resume --tasks $TASK_ARNS --query 'sort_by(tasks,&startedAt)[::-1][0].taskArn' --output text)
         echo "TASK_ARN=$TASK_ARN" >> $GITHUB_ENV
 
     - name: Update Route 53 DNS record
       run: |
         # Get the new IP address
-        NEW_IP=$(aws ecs describe-tasks --cluster resume --tasks ${{ env.TASK_ARN }} --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' --output text | xargs aws ec2 describe-network-interfaces --network-interface-ids | jq -r '.NetworkInterfaces[0].Association.PublicIp' | sed 's/[0-9]\{12\}/***/g')
+        NEW_IP=$(aws ecs describe-tasks --cluster resume --tasks ${{ env.TASK_ARN }} --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' --output text | xargs aws ec2 describe-network-interfaces --network-interface-ids | jq -r '.NetworkInterfaces[0].Association.PublicIp')
 
         # Update the DNS record
         aws route53 change-resource-record-sets --hosted-zone-id ${{ secrets.HOSTED_ZONE_ID }} --change-batch '{
@@ -81,4 +75,4 @@ jobs:
                     }
                 }
             ]
-        }' | sed 's/[0-9]\{12\}/***/g'
+        }'
