@@ -13,7 +13,7 @@ FROM nginx:1.25.3-alpine
 COPY --from=build-deps /usr/src/app/build /usr/share/nginx/html
 COPY ./letsencrypt/live/jdk3410.com/fullchain.pem /etc/letsencrypt/live/jdk3410.com/fullchain.pem
 COPY ./letsencrypt/live/jdk3410.com/privkey.pem /etc/letsencrypt/live/jdk3410.com/privkey.pem
-COPY ./nginx.conf /etc/nginx/cond.d/default.conf
+COPY ./nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
 EXPOSE 443
 CMD ["nginx", "-g", "daemon off;"]
