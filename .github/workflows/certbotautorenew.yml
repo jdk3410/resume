@@ -1,0 +1,30 @@
+name: Certbot Auto Renew
+
+on:
+  schedule:
+    - cron: '0 12 1 * *' # Run at 12:00 on the first day of the month
+  workflow_dispatch: # Manually run the workflow
+
+jobs:
+  renew:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Certbot
+      run: |
+        docker run -it --env AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} --env AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} --env AWS_REGION=${{ secrets.AWS_REGION }} -v "$(pwd)/letsencrypt:/etc/letsencrypt" certbot/dns-route53 certonly --force-renew --dns-route53 -d jdk3410.com -d '*.jdk3410.com' --agree-tos --email jkellner333@gmail.com --non-interactive
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Copy certificates to S3
+      run: |
+        aws s3 cp ./letsencrypt/live/jdk3410.com/fullchain.pem s3://jdk3410certs/
+        aws s3 cp ./letsencrypt/live/jdk3410.com/privkey.pem s3://jdk3410certs/

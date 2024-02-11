@@ -42,7 +42,7 @@ jobs:
       run: |
         aws ecs update-service --cluster resume --service resume --task-definition ${{ env.TASK_DEF_ARN }}
 
-    - name: Wait for service to be stable
+    - name: Wait for service to be stable # If we remove this step, it's possible more than one task is running on the cluster which confuses the next step
       run: |
         aws ecs wait services-stable --cluster resume --services resume
 
