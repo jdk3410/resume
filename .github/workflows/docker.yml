@@ -3,6 +3,7 @@ name: Docker Build and Push to AWS ECR
 on:
   push:
     paths-ignore:
+      - 'README.md'
       - '.github/**'
       
 jobs:
