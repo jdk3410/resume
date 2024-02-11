@@ -51,7 +51,7 @@ jobs:
     - name: Register new task definition
       id: register
       run: |
-        TASK_DEF=$(aws ecs register-task-definition --family resume --requires-compatibilities FARGATE --network-mode awsvpc --execution-role-arn ${{ secrets.ECS_TASK_EXECUTION_ROLE_ARN }} --cpu 512 --memory 1024 --container-definitions "[{\"name\":\"resume\",\"image\":\"$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG\",\"portMappings\":[{\"containerPort\":80,\"hostPort\":80,\"protocol\":\"tcp\"},{\"containerPort\":443,\"hostPort\":443,\"protocol\":\"tcp\"}],\"logConfiguration\":{\"logDriver\":\"awslogs\",\"options\":{\"awslogs-create-group\":\"true\",\"awslogs-group\":\"/ecs/resume\",\"awslogs-region\":\"us-east-1\",\"awslogs-stream-prefix\":\"ecs\"}}}]")
+        TASK_DEF=$(aws ecs register-task-definition --family resume --requires-compatibilities FARGATE --network-mode awsvpc --execution-role-arn ${{ secrets.ECS_TASK_EXECUTION_ROLE_ARN }} --cpu 256 --memory 512 --container-definitions "[{\"name\":\"resume\",\"image\":\"$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG\",\"portMappings\":[{\"containerPort\":80,\"hostPort\":80,\"protocol\":\"tcp\"},{\"containerPort\":443,\"hostPort\":443,\"protocol\":\"tcp\"}],\"logConfiguration\":{\"logDriver\":\"awslogs\",\"options\":{\"awslogs-create-group\":\"true\",\"awslogs-group\":\"/ecs/resume\",\"awslogs-region\":\"us-east-1\",\"awslogs-stream-prefix\":\"ecs\"}}}]")
         TASK_DEF_ARN=$(echo $TASK_DEF | jq -r '.taskDefinition.taskDefinitionArn')
         echo "TASK_DEF_ARN=$TASK_DEF_ARN" >> $GITHUB_ENV
 

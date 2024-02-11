@@ -1,5 +1,5 @@
 # README.md
-Simple resume site written in React hosted in a Docker container, running on AWS ECS. 
+Simple resume site written in React hosted in a Docker container, running on AWS ECS Fargate. 
 When an update is pushed to the code of the website, a GitHub Actions workflow compiles a new Docker image,
 pushes the image to Amazon Elastic Container Registry, deploys the container in ECS, then updates 
 the IP of the domain to the new ECS container in Route 53. A separate GitHub Actions workflow runs
@@ -23,3 +23,11 @@ to a S3 bucket, where they're then retreived during builds.
 - [ ] Clean up resources if build fails
 - ~~[X] Change email~~
 - ~~[X] Since we will switch to using certbot from a GitHub action, need to change Dockerfile, docker.yml, and schedule container renewal~~
+- [ ] Document setup
+- [ ] Restart old version if deploy fails
+- [ ] Check if dev deploy worked before deploy to master
+
+ Future Improvements:
+ - [ ] Install helpers - Terraform file to setup IAM roles
+ - [ ] Could make it work on Elastic Kubernetes Service although it's overkill for this purpose
+ - [ ] Make it extensible so it could be easily useable for any website
