@@ -30,7 +30,7 @@ const Terminal = () => {
         if (command === 'resume') {
             commandOutput = 'Finding the best candidate... For you!';
         } else if (command === 'contact') {
-            commandOutput = '----------------------------------\nYour primary server admin is jdk3410!\nIt just so happens he\'s seeking a DevOps position!\nEmail him @ jdk3410@github.com\n----------------------------------\n';
+            commandOutput = '----------------------------------\nYour primary server admin is jdk3410!\nIt just so happens he\'s seeking a DevOps position!\nEmail him @ 3410jdk@gmail.com\n----------------------------------\n';
         } else if (command === 'source') {
             window.location.href = 'https://github.com/jdk3410/resume';
         } else if (command === 'exit') {
