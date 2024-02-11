@@ -1,6 +1,6 @@
 # README.md
 Simple resume site written in React hosted in a Docker container, running on AWS ECS. 
-When an update is pushed to the code of the website, GitHub workflows compiles a new Docker image,
+When an update is pushed to the code of the website, a GitHub Actions workflow compiles a new Docker image,
 pushes the image to Amazon Elastic Container Registry, deploys the container in ECS, then updates 
 the IP of the domain to the new ECS container in Route 53.
 
