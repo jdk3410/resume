@@ -15,7 +15,7 @@ jobs:
 
     - name: Run Certbot
       run: |
-        docker run --env AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} --env AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} --env AWS_REGION=${{ secrets.AWS_REGION }} -v "$(pwd)/letsencrypt:/etc/letsencrypt" certbot/dns-route53 certonly --force-renew --dns-route53 -d jdk3410.com -d '*.jdk3410.com' --test-certificate --agree-tos --email jkellner333@gmail.com --non-interactive
+        docker run --env AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} --env AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} --env AWS_REGION=${{ secrets.AWS_REGION }} -v "$(pwd)/letsencrypt:/etc/letsencrypt" certbot/dns-route53 certonly --force-renew --dns-route53 -d jdk3410.com -d '*.jdk3410.com' --agree-tos --email jkellner333@gmail.com --non-interactive
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
