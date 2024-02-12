@@ -20,11 +20,11 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set domain for dev branch
-      run: echo "DOMAIN_NAME=${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}" >> $GITHUB_ENV
+      run: echo "SUB_DOMAIN=${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}" >> $GITHUB_ENV
       if: github.ref == 'refs/heads/dev'
 
     - name: Set domain for master branch
-      run: echo "DOMAIN_NAME=${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}" >> $GITHUB_ENV
+      run: echo "SUB_DOMAIN=${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}" >> $GITHUB_ENV
       if: github.ref == 'refs/heads/master'
 
     - name: Run Certbot
