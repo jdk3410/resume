@@ -1,10 +1,12 @@
 import React from 'react';
 import Terminal from './Terminal';
+import Footer from './Footer';
 
 const App = () => {
   return (
-    <div>
+    <div className="App">
       <Terminal />
+      <Footer />
     </div>
   );
 };

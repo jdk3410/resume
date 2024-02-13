@@ -6,6 +6,10 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 RUN npm install --only=production
 COPY . ./
+ARG REACT_APP_GIT_BRANCH
+ARG REACT_APP_VERSION
+ENV REACT_APP_GIT_BRANCH=$REACT_APP_GIT_BRANCH
+ENV REACT_APP_VERSION=$REACT_APP_VERSION
 RUN npm run build
 
 # Stage 2 - Nginx stage

@@ -55,7 +55,7 @@ jobs:
 
     - name: Build, tag, and push image to Amazon ECR
       run: |
-        docker build --build-arg DOMAIN_NAME=$DOMAIN_NAME -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker build --build-arg REACT_APP_GIT_BRANCH=${GITHUB_REF##*/} --build-arg REACT_APP_VERSION=${{ github.run_number }} DOMAIN_NAME=$DOMAIN_NAME -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
     - name: Register new task definition
