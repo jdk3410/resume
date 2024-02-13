@@ -62,18 +62,18 @@ jobs:
     - name: Register new task definition
       id: register
       run: |
-        TASK_DEF=$(aws ecs register-task-definition --family resume-dev --requires-compatibilities FARGATE --network-mode awsvpc --execution-role-arn ${{ secrets.ECS_TASK_EXECUTION_ROLE_ARN }} --cpu 256 --memory 512 --container-definitions "[{\"name\":\"resume-dev\",\"image\":\"$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG\",\"portMappings\":[{\"containerPort\":80,\"hostPort\":80,\"protocol\":\"tcp\"},{\"containerPort\":443,\"hostPort\":443,\"protocol\":\"tcp\"}],\"logConfiguration\":{\"logDriver\":\"awslogs\",\"options\":{\"awslogs-create-group\":\"true\",\"awslogs-group\":\"/ecs/resume\",\"awslogs-region\":\"us-east-1\",\"awslogs-stream-prefix\":\"ecs\"}}}]")
+        TASK_DEF=$(aws ecs register-task-definition --family ${{ env.TASK }}-${{ env.SUB_DOMAIN }} --requires-compatibilities FARGATE --network-mode awsvpc --execution-role-arn ${{ secrets.ECS_TASK_EXECUTION_ROLE_ARN }} --cpu 256 --memory 512 --container-definitions "[{\"name\":\"$TASK-$SUB_DOMAIN\",\"image\":\"$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG\",\"portMappings\":[{\"containerPort\":80,\"hostPort\":80,\"protocol\":\"tcp\"},{\"containerPort\":443,\"hostPort\":443,\"protocol\":\"tcp\"}],\"logConfiguration\":{\"logDriver\":\"awslogs\",\"options\":{\"awslogs-create-group\":\"true\",\"awslogs-group\":\"/ecs/$TASK-$SUB_DOMAIN\",\"awslogs-region\":\"us-east-1\",\"awslogs-stream-prefix\":\"ecs\"}}}]")
         TASK_DEF_ARN=$(echo $TASK_DEF | jq -r '.taskDefinition.taskDefinitionArn')
         echo "TASK_DEF_ARN=$TASK_DEF_ARN" >> $GITHUB_ENV
 
     - name: Update ECS service
       run: |
-        aws ecs update-service --cluster resume --service resume-dev --task-definition ${{ env.TASK_DEF_ARN }}
+        aws ecs update-service --cluster ${{ env.TASK }} --service ${{ env.TASK }}-${{ env.SUB_DOMAIN }} --task-definition ${{ env.TASK_DEF_ARN }}
 
     - name: Wait for service to be stable # If we remove this step, it's possible more than one task is running on the cluster which confuses the next step
     # We could look in to disabling this if build time becomes excessive
       run: |
-        aws ecs wait services-stable --cluster resume --services resume-dev
+        aws ecs wait services-stable --cluster ${{ env.TASK }} --services ${{ env.TASK }}-${{ env.SUB_DOMAIN }}
 
     - name: Get running task ARN
       id: get-task
