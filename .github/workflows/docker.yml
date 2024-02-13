@@ -61,7 +61,7 @@ jobs:
     - name: Register new task definition
       id: register
       run: |
-        TASK_DEF=$(aws ecs register-task-definition --family resume --requires-compatibilities FARGATE --network-mode awsvpc --execution-role-arn ${{ secrets.ECS_TASK_EXECUTION_ROLE_ARN }} --cpu 256 --memory 512 --container-definitions "[{\"name\":\"resume\",\"image\":\"$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG\",\"portMappings\":[{\"containerPort\":80,\"hostPort\":80,\"protocol\":\"tcp\"},{\"containerPort\":443,\"hostPort\":443,\"protocol\":\"tcp\"}],\"logConfiguration\":{\"logDriver\":\"awslogs\",\"options\":{\"awslogs-create-group\":\"true\",\"awslogs-group\":\"/ecs/resume\",\"awslogs-region\":\"us-east-1\",\"awslogs-stream-prefix\":\"ecs\"}}}]")
+        TASK_DEF=$(aws ecs register-task-definition --family resume-dev --requires-compatibilities FARGATE --network-mode awsvpc --execution-role-arn ${{ secrets.ECS_TASK_EXECUTION_ROLE_ARN }} --cpu 256 --memory 512 --container-definitions "[{\"name\":\"resume-dev\",\"image\":\"$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG\",\"portMappings\":[{\"containerPort\":80,\"hostPort\":80,\"protocol\":\"tcp\"},{\"containerPort\":443,\"hostPort\":443,\"protocol\":\"tcp\"}],\"logConfiguration\":{\"logDriver\":\"awslogs\",\"options\":{\"awslogs-create-group\":\"true\",\"awslogs-group\":\"/ecs/resume\",\"awslogs-region\":\"us-east-1\",\"awslogs-stream-prefix\":\"ecs\"}}}]")
         TASK_DEF_ARN=$(echo $TASK_DEF | jq -r '.taskDefinition.taskDefinitionArn')
         echo "TASK_DEF_ARN=$TASK_DEF_ARN" >> $GITHUB_ENV
 
@@ -81,12 +81,12 @@ jobs:
             echo "Cluster does not exist or is not active"
             exit 1
           fi
-          FAMILY_EXISTS=$(aws ecs list-task-definitions --family-prefix resume --status ACTIVE --query 'taskDefinitionArns' --output text)
+          FAMILY_EXISTS=$(aws ecs list-task-definitions --family-prefix resume-dev --status ACTIVE --query 'taskDefinitionArns' --output text)
           if [ -z "$FAMILY_EXISTS" ]; then
             echo "Family does not exist or is not active"
             exit 1
           fi
-          TASK_ARN=$(aws ecs list-tasks --cluster resume --family resume --desired-status RUNNING --query 'taskArns' --output text)
+          TASK_ARN=$(aws ecs list-tasks --cluster resume --family resume-dev --desired-status RUNNING --query 'taskArns' --output text)
           if [ -z "$TASK_ARN" ]; then
             echo "No running tasks found"
             exit 1
@@ -94,47 +94,14 @@ jobs:
           
           echo "TASK_ARN=$TASK_ARN" >> $GITHUB_ENV
 
-    - name: Update Route 53 DNS record
+    - name: Update Route 53 DNS record for master
+      if: github.ref == 'refs/heads/master'
       run: |
-        # Get the new IP address - need to fix the A record to be a CNAME
-        NEW_IP=$(aws ecs describe-tasks --cluster resume --tasks ${{ env.TASK_ARN }} --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' --output text | xargs aws ec2 describe-network-interfaces --network-interface-ids | jq -r '.NetworkInterfaces[0].Association.PublicIp')
+        NEW_IP=$(aws ecs describe-tasks --cluster *** --tasks ${{ env.TASK_ARN }} --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' --output text | xargs aws ec2 describe-network-interfaces --network-interface-ids | jq -r '.NetworkInterfaces[0].Association.PublicIp')
+            aws route53 change-resource-record-sets --hosted-zone-id *** --change-batch '{"Changes": [{"Action": "UPSERT","ResourceRecordSet": {"Name": "'${{ env.DOMAIN_NAME }}'","Type": "A","TTL": 300,"ResourceRecords": [{"Value": "'$NEW_IP'"}]}}]}'
 
-        # Update the DNS record - does env.DOMAIN_NAME for master and env.SUB_DOMAIN.DOMAIN_NAME for dev
-        if: github.ref == 'refs/heads/master'
-        run: |
-          aws route53 change-resource-record-sets --hosted-zone-id ${{ secrets.HOSTED_ZONE_ID }} --change-batch '{
-            "Changes": [
-              {
-                "Action": "UPSERT",
-                "ResourceRecordSet": {
-                  "Name": "'${{ env.DOMAIN_NAME }}'",
-                  "Type": "A",
-                  "TTL": 300,
-                  "ResourceRecords": [
-                    {
-                      "Value": "'$NEW_IP'"
-                    }
-                  ]
-                }
-              }
-            ]
-          }'
-        if: github.ref == 'refs/heads/dev'
-        run: |
-          aws route53 change-resource-record-sets --hosted-zone-id ${{ secrets.HOSTED_ZONE_ID }} --change-batch '{
-            "Changes": [
-              {
-                "Action": "UPSERT",
-                "ResourceRecordSet": {
-                  "Name": "'${{ env.SUB_DOMAIN}}.${{ env.DOMAIN_NAME }}'",
-                  "Type": "A",
-                  "TTL": 300,
-                  "ResourceRecords": [
-                    {
-                      "Value": "'$NEW_IP'"
-                    }
-                  ]
-                }
-              }
-            ]
-          }'
+    - name: Update Route 53 DNS record for dev
+      if: github.ref == 'refs/heads/dev'
+      run: |
+            NEW_IP=$(aws ecs describe-tasks --cluster *** --tasks ${{ env.TASK_ARN }} --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' --output text | xargs aws ec2 describe-network-interfaces --network-interface-ids | jq -r '.NetworkInterfaces[0].Association.PublicIp')
+            aws route53 change-resource-record-sets --hosted-zone-id *** --change-batch '{"Changes": [{"Action": "UPSERT","ResourceRecordSet": {"Name": "'${{ env.SUB_DOMAIN}}.${{ env.DOMAIN_NAME }}'","Type": "A","TTL": 300,"ResourceRecords": [{"Value": "'$NEW_IP'"}]}}]}'
