@@ -1,8 +1,13 @@
-.App {
-  text-align: center;
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+#root, .App {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 100%;
 }
 
 .App-logo {
@@ -32,7 +37,14 @@
 }
 
 .Footer {
-  margin-top: auto;
+  width: 100%;
+  background-color: blue;
+  color: white;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 60px; 
 }
 
 @keyframes App-logo-spin {
