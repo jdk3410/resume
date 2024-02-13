@@ -97,11 +97,43 @@ jobs:
     - name: Update Route 53 DNS record for master
       if: github.ref == 'refs/heads/master'
       run: |
-        NEW_IP=$(aws ecs describe-tasks --cluster *** --tasks ${{ env.TASK_ARN }} --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' --output text | xargs aws ec2 describe-network-interfaces --network-interface-ids | jq -r '.NetworkInterfaces[0].Association.PublicIp')
-            aws route53 change-resource-record-sets --hosted-zone-id *** --change-batch '{"Changes": [{"Action": "UPSERT","ResourceRecordSet": {"Name": "'${{ env.DOMAIN_NAME }}'","Type": "A","TTL": 300,"ResourceRecords": [{"Value": "'$NEW_IP'"}]}}]}'
-
+            NEW_IP=$(aws ecs describe-tasks --cluster resume --tasks ${{ env.TASK_ARN }} --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' --output text | xargs aws ec2 describe-network-interfaces --network-interface-ids | jq -r '.NetworkInterfaces[0].Association.PublicIp')
+            aws route53 change-resource-record-sets --hosted-zone-id ${{ secrets.HOSTED_ZONE_ID }} --change-batch '{
+              "Changes": [
+                {
+                  "Action": "UPSERT",
+                  "ResourceRecordSet": {
+                    "Name": "'${{ env.DOMAIN_NAME }}'",
+                    "Type": "A",
+                    "TTL": 300,
+                    "ResourceRecords": [
+                      {
+                        "Value": "'$NEW_IP'"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }'
+        
     - name: Update Route 53 DNS record for dev
       if: github.ref == 'refs/heads/dev'
       run: |
-            NEW_IP=$(aws ecs describe-tasks --cluster *** --tasks ${{ env.TASK_ARN }} --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' --output text | xargs aws ec2 describe-network-interfaces --network-interface-ids | jq -r '.NetworkInterfaces[0].Association.PublicIp')
-            aws route53 change-resource-record-sets --hosted-zone-id *** --change-batch '{"Changes": [{"Action": "UPSERT","ResourceRecordSet": {"Name": "'${{ env.SUB_DOMAIN}}.${{ env.DOMAIN_NAME }}'","Type": "A","TTL": 300,"ResourceRecords": [{"Value": "'$NEW_IP'"}]}}]}'
+            NEW_IP=$(aws ecs describe-tasks --cluster resume --tasks ${{ env.TASK_ARN }} --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' --output text | xargs aws ec2 describe-network-interfaces --network-interface-ids | jq -r '.NetworkInterfaces[0].Association.PublicIp')
+            aws route53 change-resource-record-sets --hosted-zone-id ${{ secrets.HOSTED_ZONE_ID }} --change-batch '{
+              "Changes": [
+                {
+                  "Action": "UPSERT",
+                  "ResourceRecordSet": {
+                    "Name": "'${{ env.SUB_DOMAIN}}.${{ env.DOMAIN_NAME }}'",
+                    "Type": "A",
+                    "TTL": 300,
+                    "ResourceRecords": [
+                      {
+                        "Value": "'$NEW_IP'"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }'
