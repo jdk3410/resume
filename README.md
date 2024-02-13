@@ -20,11 +20,11 @@ to a S3 bucket, where they're then retreived during builds.
 - [ ] Add variables for hard coded links
 - ~~[X] Only actually rebuild when necesary (don't need to rebuild the image when we commit the README)~~
 - [ ] dev/master separation
-- [ ] Clean up resources if build fails
+- ~~[ ] Clean up resources if build fails~~
 - ~~[X] Change email~~
 - ~~[X] Since we will switch to using certbot from a GitHub action, need to change Dockerfile, docker.yml, and schedule container renewal~~
 - [ ] Document setup
-- [ ] Restart old version if deploy fails
+- ~~[ ] Restart old version if deploy fails~~
 - [ ] Check if dev deploy worked before deploy to master
 
  Future Improvements:

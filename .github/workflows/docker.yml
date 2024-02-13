@@ -19,10 +19,20 @@ jobs:
       ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
       ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
       IMAGE_TAG: ${{ github.sha }}
-
+      DOMAIN_NAME: ${{ vars.DOMAIN_NAME }} 
+      SUB_DOMAIN: ${{ github.ref == 'refs/heads/dev' && 'dev' || github.ref == 'refs/heads/master' && 'www' || '' }}
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+
+    - name: Set subdomain for dev branch
+      run: echo "SUB_DOMAIN=dev" >> $GITHUB_ENV
+      if: github.ref == 'refs/heads/dev'
+    
+    - name: Set subdomain for master branch
+      run: echo "SUB_DOMAIN=www" >> $GITHUB_ENV
+      if: github.ref == 'refs/heads/master'
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
@@ -33,9 +43,9 @@ jobs:
 
     - name: Copy certificates from S3
       run: |
-        mkdir -p ./letsencrypt/live/jdk3410.com/
-        aws s3 cp s3://jdk3410certs/fullchain.pem ./letsencrypt/live/jdk3410.com/fullchain.pem
-        aws s3 cp s3://jdk3410certs/privkey.pem ./letsencrypt/live/jdk3410.com/privkey.pem
+        mkdir -p ./letsencrypt/live/$DOMAIN_NAME/
+        aws s3 cp s3://jdk3410certs/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/fullchain.pem ./letsencrypt/live/${{ env.DOMAIN_NAME }}/fullchain.pem
+        aws s3 cp s3://jdk3410certs/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/privkey.pem ./letsencrypt/live/${{ env.DOMAIN_NAME }}/privkey.pem
 
     - name: Login to Amazon ECR
       id: login-ecr
@@ -45,7 +55,7 @@ jobs:
 
     - name: Build, tag, and push image to Amazon ECR
       run: |
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker build --build-arg DOMAIN_NAME=$DOMAIN_NAME -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
     - name: Register new task definition
@@ -57,11 +67,11 @@ jobs:
 
     - name: Update ECS service
       run: |
-        aws ecs update-service --cluster resume --service resume --task-definition ${{ env.TASK_DEF_ARN }}
+        aws ecs update-service --cluster resume --service resume-dev --task-definition ${{ env.TASK_DEF_ARN }}
 
     - name: Wait for service to be stable # If we remove this step, it's possible more than one task is running on the cluster which confuses the next step
       run: |
-        aws ecs wait services-stable --cluster resume --services resume
+        aws ecs wait services-stable --cluster resume --services resume-dev
 
     - name: Get running task ARN
       id: get-task
@@ -86,24 +96,45 @@ jobs:
 
     - name: Update Route 53 DNS record
       run: |
-        # Get the new IP address
+        # Get the new IP address - need to fix the A record to be a CNAME
         NEW_IP=$(aws ecs describe-tasks --cluster resume --tasks ${{ env.TASK_ARN }} --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' --output text | xargs aws ec2 describe-network-interfaces --network-interface-ids | jq -r '.NetworkInterfaces[0].Association.PublicIp')
 
-        # Update the DNS record
-        aws route53 change-resource-record-sets --hosted-zone-id ${{ secrets.HOSTED_ZONE_ID }} --change-batch '{
+        # Update the DNS record - does env.DOMAIN_NAME for master and env.SUB_DOMAIN.DOMAIN_NAME for dev
+        if: github.ref == 'refs/heads/master'
+        run: |
+          aws route53 change-resource-record-sets --hosted-zone-id ${{ secrets.HOSTED_ZONE_ID }} --change-batch '{
             "Changes": [
-                {
-                    "Action": "UPSERT",
-                    "ResourceRecordSet": {
-                        "Name": "jdk3410.com",
-                        "Type": "A",
-                        "TTL": 300,
-                        "ResourceRecords": [
-                            {
-                                "Value": "'$NEW_IP'"
-                            }
-                        ]
+              {
+                "Action": "UPSERT",
+                "ResourceRecordSet": {
+                  "Name": "'${{ env.DOMAIN_NAME }}'",
+                  "Type": "A",
+                  "TTL": 300,
+                  "ResourceRecords": [
+                    {
+                      "Value": "'$NEW_IP'"
                     }
+                  ]
                 }
+              }
             ]
-        }'
+          }'
+        if: github.ref == 'refs/heads/dev'
+        run: |
+          aws route53 change-resource-record-sets --hosted-zone-id ${{ secrets.HOSTED_ZONE_ID }} --change-batch '{
+            "Changes": [
+              {
+                "Action": "UPSERT",
+                "ResourceRecordSet": {
+                  "Name": "'${{ env.SUB_DOMAIN}}.${{ env.DOMAIN_NAME }}'",
+                  "Type": "A",
+                  "TTL": 300,
+                  "ResourceRecords": [
+                    {
+                      "Value": "'$NEW_IP'"
+                    }
+                  ]
+                }
+              }
+            ]
+          }'
