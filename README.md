@@ -26,6 +26,7 @@ to a S3 bucket, where they're then retreived during builds.
 - [ ] Document setup
 - ~~[ ] Restart old version if deploy fails~~
 - [ ] Check if dev deploy worked before deploy to master
+- [ ] Push certbot out another month, handle conditions where certbot autorenew doesn't complete
 
  Future Improvements:
  - [ ] Install helpers - Terraform file to setup IAM roles
