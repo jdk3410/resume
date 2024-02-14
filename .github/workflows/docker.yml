@@ -163,34 +163,34 @@ jobs:
          path: curl-success.txt
       if: github.ref == 'refs/heads/dev'
 
-merge:
-  needs: build
-  if: github.ref == 'refs/heads/dev'
-  runs-on: ubuntu-latest
-  steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+  merge:
+    needs: build
+    if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Download success file
-      uses: actions/download-artifact@v6
-      with:
-        name: curl-success
+      - name: Download success file
+        uses: actions/download-artifact@v6
+        with:
+          name: curl-success
 
-    - name: Check for success file and create pull request
-      run: |
-        if [ -f curl-success.txt ]; then
-          echo "Curl command was successful, creating pull request..."
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git fetch origin master
-          git checkout -b merge-dev-to-master
-          git merge --no-ff dev
-          git push origin merge-dev-to-master
-          gh pr create --title "Merge dev into master" --body "This PR is automatically generated. Merging will happen automatically upon successful completion of all required checks and reviews." --base master --head merge-dev-to-master --label automerge
-        else
-          echo "Curl command failed, not creating pull request."
-          exit 1
-        fi
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
+      - name: Check for success file and create pull request
+        run: |
+          if [ -f curl-success.txt ]; then
+             echo "Curl command was successful, creating pull request..."
+             git config user.name "GitHub Actions"
+             git config user.email "actions@github.com"
+             git fetch origin master
+             git checkout -b merge-dev-to-master
+             git merge --no-ff dev
+             git push origin merge-dev-to-master
+             gh pr create --title "Merge dev into master" --body "This PR is automatically generated. Merging will happen automatically upon successful completion of all required checks and reviews." --base master --head merge-dev-to-master --label automerge
+           else
+             echo "Curl command failed, not creating pull request."
+             exit 1
+            fi
+          env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
  
