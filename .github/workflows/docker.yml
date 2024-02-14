@@ -32,7 +32,8 @@ jobs:
       run: |
         npm install
         npm test
-
+      if: github.ref == 'refs/heads/dev' # The plan is to merge dev into master only if the tests pass
+    
     - name: Set subdomain for dev branch
       run: echo "SUB_DOMAIN=dev" >> $GITHUB_ENV
       if: github.ref == 'refs/heads/dev'
@@ -149,18 +150,11 @@ jobs:
               ]
             }'
 
-    - name: Run curl command and create success file
+    - name: Run curl command and check result # This would be the final check to ensure the deployment was successful
       run: |
+        set -e
         sleep 90
-        curl -s https://dev.jdk3410.com | grep "Build: ${{ github.run_number }}" && touch curl-success.txt
-        # Might need to check for a more specific string related to the new version
-      if: github.ref == 'refs/heads/dev'
-    
-    - name: Upload success file
-      uses: actions/upload-artifact@v4
-      with:
-        name: curl-success
-        path: curl-success.txt
+        curl -s https://dev.jdk3410.com | grep "Build: ${{ github.run_number }}"
       if: github.ref == 'refs/heads/dev'
 
   merge:
@@ -168,21 +162,23 @@ jobs:
     if: github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
     steps:
-              - name: Checkout code
-                uses: actions/checkout@v4
-        
-              - name: Download success file
-                uses: actions/download-artifact@v4
-                with:
-                  name: curl-success
-        
-              - name: Check for success file and merge dev into master
-                run: |
-                  if [ -f curl-success.txt ]; then
-                    git config user.name "GitHub Actions"
-                    git config user.email "actions@github.com"
-                    git fetch origin master
-                    git checkout master
-                    git merge --allow-unrelated-histories --no-ff dev
-                    git push origin master
-                  fi
+      - name: Checkout code
+        uses: actions/checkout@v4
+    
+      - name: Download success file
+        uses: actions/download-artifact@v4
+        with:
+          name: curl-success
+    
+      - name: Check for success file and create pull request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Merge dev into master"
+          branch: "merge-dev-to-master"
+          title: "Merge dev into master"
+          body: "This PR is automatically generated. Merging will happen automatically upon successful completion of all required checks and reviews."
+          base: "master"
+          labels: "automerge"
+        if: steps.download.outputs.download-success == 'true'        
+ 
