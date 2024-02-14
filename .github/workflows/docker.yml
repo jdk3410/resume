@@ -54,6 +54,9 @@ jobs:
       uses: aws-actions/amazon-ecr-login@v2
       with:
         mask-password: true
+    
+    - name: Update index.html with run number
+      run: sed -i 's/RUN_NUMBER_PLACEHOLDER/${{ github.run_number }}/g' ./public/index.html
 
     - name: Build, tag, and push image to Amazon ECR
       run: |
@@ -144,11 +147,11 @@ jobs:
     - name: Run curl command and create success file
       run: |
         sleep 90
-        curl -s https://dev.jdk3410.com | grep "${{ github.run_number }}" && touch curl-success.txt
+        curl -s https://dev.jdk3410.com | grep "Build: ${{ github.run_number }}" && touch curl-success.txt
         # Might need to check for a more specific string related to the new version
       if: github.ref == 'refs/heads/dev'
     - name: Upload success file
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: curl-success
         path: curl-success.txt
@@ -160,10 +163,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
               - name: Checkout code
-                uses: actions/checkout@v2
+                uses: actions/checkout@v4
         
               - name: Download success file
-                uses: actions/download-artifact@v2
+                uses: actions/download-artifact@v4
                 with:
                   name: curl-success
         
