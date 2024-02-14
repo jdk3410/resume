@@ -144,13 +144,15 @@ jobs:
     - name: Run curl command and create success file
       run: |
         sleep 90
-        curl -s https://dev.jdk3410.com | grep "Unix" && touch curl-success.txt
+        curl -s https://dev.jdk3410.com | grep "${{ github.run_number }}" && touch curl-success.txt
         # Might need to check for a more specific string related to the new version
+      if: github.ref == 'refs/heads/dev'
     - name: Upload success file
       uses: actions/upload-artifact@v2
       with:
         name: curl-success
         path: curl-success.txt
+      if: github.ref == 'refs/heads/dev'
 
   merge:
     needs: build
