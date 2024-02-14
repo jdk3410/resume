@@ -150,12 +150,20 @@ jobs:
               ]
             }'
 
-    - name: Run curl command and check result # This would be the final check to ensure the deployment was successful
+    - name: Run curl command and create success file
       run: |
-        set -e
         sleep 90
-        curl -s https://dev.jdk3410.com | grep "Build: ${{ github.run_number }}"
+        curl -s https://dev.jdk3410.com | grep "Build: ${{ github.run_number }}" && touch curl-success.txt
+        # Might need to check for a more specific string related to the new version
       if: github.ref == 'refs/heads/dev'
+    
+    - name: Upload success file
+      uses: actions/upload-artifact@v4
+      with:
+        name: curl-success
+        path: curl-success.txt
+      if: github.ref == 'refs/heads/dev'
+
 
   merge:
     needs: build
@@ -164,12 +172,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-    
+        
       - name: Download success file
         uses: actions/download-artifact@v4
         with:
           name: curl-success
-    
+        
       - name: Check for success file and create pull request
         uses: peter-evans/create-pull-request@v6
         with:

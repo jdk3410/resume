@@ -14,7 +14,7 @@ to a S3 bucket, where they're then retreived during builds.
 - ~~[X] Set up GitHub actions to deploy new image on ECS~~
 - ~~[X] Set up GitHub actions to make any required changes if IP of the container changes~~
 - [ ] Create diagram of how it works
-- [ ] Build tests in GitHub actions
+- ~~[X] Build tests in GitHub actions~~
 - ~~[X] Replace placeholders~~
 - [ ] Observability
 - ~~[X] Add variables for hard coded links~~
@@ -25,7 +25,6 @@ to a S3 bucket, where they're then retreived during builds.
 - ~~[X] Since we will switch to using certbot from a GitHub action, need to change Dockerfile, docker.yml, and schedule container renewal~~
 - [ ] Document setup
 - ~~[ ] Restart old version if deploy fails~~
-- [ ] Check if dev deploy worked before deploy to master, if so auto pull from dev
 - ~~[ ] Push certbot out another month, handle conditions where certbot autorenew doesn't complete~~
 
  Future Improvements:
@@ -33,3 +32,4 @@ to a S3 bucket, where they're then retreived during builds.
  - [ ] Could make it work on Elastic Kubernetes Service although it's overkill for this purpose
  - [ ] Make it extensible so it could be easily useable for any website
  - [ ] Since schedules on GitHub Actions workflows only work on one branch per file, re-write the entire docker.yml into one for each branch
+ 
