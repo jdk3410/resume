@@ -71,9 +71,9 @@ jobs:
       run: |
         aws ecs update-service --cluster ${{ env.TASK }} --service ${{ env.TASK }}-${{ env.SUB_DOMAIN }} --task-definition ${{ env.TASK_DEF_ARN }}
 
-    - name: Wait for service to be stable # If we remove this step, it's possible more than one task is running on the cluster which confuses the next step
-      run: |
-        aws ecs wait services-stable --cluster ${{ env.TASK }} --services ${{ env.TASK }}-${{ env.SUB_DOMAIN }}
+   # - name: Wait for service to be stable # If we remove this step, it's possible more than one task is running on the cluster which confuses the next step
+   #   run: |
+   #     aws ecs wait services-stable --cluster ${{ env.TASK }} --services ${{ env.TASK }}-${{ env.SUB_DOMAIN }}
    
 
     - name: Get running task ARN
