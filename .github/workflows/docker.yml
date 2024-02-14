@@ -74,29 +74,51 @@ jobs:
    # - name: Wait for service to be stable # If we remove this step, it's possible more than one task is running on the cluster which confuses the next step
    #   run: |
    #     aws ecs wait services-stable --cluster ${{ env.TASK }} --services ${{ env.TASK }}-${{ env.SUB_DOMAIN }}
-   
+   # Actually it's possible to skip this step but there would be two tasks running on the cluster for a short period of time, so we need to sort them by start time
 
     - name: Get running task ARN
       id: get-task
       run: |
-          CLUSTER_EXISTS=$(aws ecs describe-clusters --clusters ${{ env.TASK }} --query 'clusters[?status==`ACTIVE`].clusterArn' --output text)
-          if [ -z "$CLUSTER_EXISTS" ]; then
-            echo "Cluster does not exist or is not active"
-            exit 1
-          fi
-          FAMILY_EXISTS=$(aws ecs list-task-definitions --family-prefix ${{ env.TASK }}-${{ env.SUB_DOMAIN }} --status ACTIVE --query 'taskDefinitionArns' --output text)
-          if [ -z "$FAMILY_EXISTS" ]; then
-            echo "Family does not exist or is not active"
-            exit 1
-          fi
-          TASK_ARN=$(aws ecs list-tasks --cluster ${{ env.TASK }} --family ${{ env.TASK }}-${{ env.SUB_DOMAIN }} --desired-status RUNNING --query 'taskArns' --output text)
-          if [ -z "$TASK_ARN" ]; then
-            echo "No running tasks found"
-            exit 1
-          fi
-          
-          echo "TASK_ARN=$TASK_ARN" >> $GITHUB_ENV
-
+       CLUSTER_EXISTS=$(aws ecs describe-clusters --clusters ${{ env.TASK }} --query 'clusters[?status==`ACTIVE`].clusterArn' --output text)
+       if [ -z "$CLUSTER_EXISTS" ]; then
+         echo "Cluster does not exist or is not active"
+         exit 1
+       fi
+       FAMILY_EXISTS=$(aws ecs list-task-definitions --family-prefix ${{ env.TASK }}-${{ env.SUB_DOMAIN }} --status ACTIVE --query 'taskDefinitionArns' --output text)
+       if [ -z "$FAMILY_EXISTS" ]; then
+         echo "Family does not exist or is not active"
+         exit 1
+       fi
+       TASK_ARNS=$(aws ecs list-tasks --cluster ${{ env.TASK }} --family ${{ env.TASK }}-${{ env.SUB_DOMAIN }} --desired-status RUNNING --query 'taskArns' --output text)
+       if [ -z "$TASK_ARNS" ]; then
+         echo "No running tasks found"
+         exit 1
+       fi
+ 
+       
+       IFS=' ' read -r -a array <<< "$TASK_ARNS"
+ 
+       
+       LATEST_TASK_ARN=""
+       LATEST_START_TIME=""
+ 
+       
+       for TASK_ARN in "${array[@]}"
+       do
+         
+         START_TIME=$(aws ecs describe-tasks --cluster ${{ env.TASK }} --tasks $TASK_ARN --query 'tasks[0].startedAt' --output text)
+ 
+         
+         if [[ "$START_TIME" > "$LATEST_START_TIME" ]]
+         then
+           LATEST_TASK_ARN=$TASK_ARN
+           LATEST_START_TIME=$START_TIME
+         fi
+       done
+ 
+       
+       echo "TASK_ARN=$LATEST_TASK_ARN" >> $GITHUB_ENV
+   
     - name: Update Route 53 DNS record for master # The step of updating DNS could be done with Service Discovery but that's a bit more complex
       if: github.ref == 'refs/heads/master'
       run: |
@@ -145,7 +167,7 @@ jobs:
       run: |
         sleep 90
         curl -s https://dev.jdk3410.com | grep "Unix" && touch curl-success.txt
-    
+        # Might need to check for a more specific string related to the new version
     - name: Upload success file
       uses: actions/upload-artifact@v2
       with:
