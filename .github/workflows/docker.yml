@@ -6,7 +6,8 @@ on:
       - 'README.md'
       - '.github/**'
   schedule:
-    - cron: '0 13 1 * *' # We need to rebuild this monthly to get the latest security updates and to get the new LetsEncrypt certificate
+    - cron: '0 14 1 * *' # We need to rebuild this monthly to get the latest security updates and to get the new LetsEncrypt certificate
+                         # This only runs on the default branch, which is master. If we want to run this on both branches automatically we have to split this in to two workflows
   workflow_dispatch: # Manually run the workflow
     
 jobs:
@@ -70,10 +71,11 @@ jobs:
       run: |
         aws ecs update-service --cluster ${{ env.TASK }} --service ${{ env.TASK }}-${{ env.SUB_DOMAIN }} --task-definition ${{ env.TASK_DEF_ARN }}
 
-    - name: Wait for service to be stable # If we remove this step, it's possible more than one task is running on the cluster which confuses the next step
-    # We could look in to disabling this if build time becomes excessive
-      run: |
-        aws ecs wait services-stable --cluster ${{ env.TASK }} --services ${{ env.TASK }}-${{ env.SUB_DOMAIN }}
+   # - name: Wait for service to be stable # If we remove this step, it's possible more than one task is running on the cluster which confuses the next step
+   # We could look in to disabling this if build time becomes excessive
+   #   run: |
+   #     aws ecs wait services-stable --cluster ${{ env.TASK }} --services ${{ env.TASK }}-${{ env.SUB_DOMAIN }}
+   # Testing to see what happens!
 
     - name: Get running task ARN
       id: get-task
@@ -96,7 +98,7 @@ jobs:
           
           echo "TASK_ARN=$TASK_ARN" >> $GITHUB_ENV
 
-    - name: Update Route 53 DNS record for master
+    - name: Update Route 53 DNS record for master # The step of updating DNS could be done with Service Discovery but that's a bit more complex
       if: github.ref == 'refs/heads/master'
       run: |
             NEW_IP=$(aws ecs describe-tasks --cluster ${{ env.TASK }} --tasks ${{ env.TASK_ARN }} --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' --output text | xargs aws ec2 describe-network-interfaces --network-interface-ids | jq -r '.NetworkInterfaces[0].Association.PublicIp')
@@ -139,3 +141,38 @@ jobs:
                 }
               ]
             }'
+
+    - name: Run curl command and create success file
+      run: |
+        sleep 90
+        curl -s https://dev.jdk3410.com | grep "Unix" && touch curl-success.txt
+    
+    - name: Upload success file
+      uses: actions/upload-artifact@v2
+      with:
+        name: curl-success
+        path: curl-success.txt
+
+  merge:
+    needs: build
+    if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    steps:
+              - name: Checkout code
+                uses: actions/checkout@v2
+        
+              - name: Download success file
+                uses: actions/download-artifact@v2
+                with:
+                  name: curl-success
+        
+              - name: Check for success file and merge dev into master
+                run: |
+                  if [ -f curl-success.txt ]; then
+                    git config user.name "GitHub Actions"
+                    git config user.email "actions@github.com"
+                    git fetch origin master
+                    git checkout master
+                    git merge --no-ff dev
+                    git push origin master
+                  fi
