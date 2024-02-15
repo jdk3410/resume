@@ -2,6 +2,9 @@ name: Docker Build and Push to AWS ECR
 
 on:
   push:
+    branches:
+       - master
+       - dev
     paths-ignore:
       - 'README.md'
       - '.github/**'
@@ -150,48 +153,8 @@ jobs:
               ]
             }'
 
-    - name: Run curl command and create success file
+    - name: Check dev website for successful deployment
       run: |
         sleep 90
-        curl -s https://dev.jdk3410.com | grep "Build: ${{ github.run_number }}" && touch curl-success.txt
+        curl -s https://${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }} | grep "Build: ${{ github.run_number }}" 
       if: github.ref == 'refs/heads/dev'
-
-    - name: Upload success file
-      uses: actions/upload-artifact@v4
-      with:
-         name: curl-success
-         path: curl-success.txt
-      if: github.ref == 'refs/heads/dev'
-
-  merge:
-    needs: build
-    if: github.ref == 'refs/heads/dev'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download success file
-        uses: actions/download-artifact@v4
-        with:
-          name: curl-success
-
-      - name: Check for success file and create pull request
-        run: |
-          if [ -f curl-success.txt ]; then
-            echo "Curl command was successful, creating pull request..."
-            git config user.name "GitHub Actions"
-            git config user.email "actions@github.com"
-            git remote set-url origin https://x-access-token:${{ secrets.REPO_ACCESS_TOKEN }}@github.com/jdk3410/resume
-            git fetch origin dev
-            git checkout master || git checkout -b master
-            git merge dev
-            git push origin master
-            echo $(gh pr create --repo jdk3410/resume --title "Merge dev into master" --body "This PR is automatically generated. Merging will happen automatically upon successful completion of all required checks and reviews." --base master --head dev --label automerge -f)
-          else
-            echo "Curl command failed, not creating pull request."
-            exit 1
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
- 

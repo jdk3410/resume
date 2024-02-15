@@ -32,4 +32,5 @@ to a S3 bucket, where they're then retreived during builds.
  - [ ] Could make it work on Elastic Kubernetes Service although it's overkill for this purpose
  - [ ] Make it extensible so it could be easily useable for any website
  - [ ] Since schedules on GitHub Actions workflows only work on one branch per file, re-write the entire docker.yml into one for each branch
+ - [ ] Automerge / AutoPR to pull dev into master
  
