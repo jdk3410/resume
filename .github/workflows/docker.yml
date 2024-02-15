@@ -153,10 +153,10 @@ jobs:
               ]
             }'
 
-    - name: Run curl command and create success file
+    - name: Check dev website for successful deployment
       run: |
         sleep 90
-        curl -s https://dev.jdk3410.com | grep "Build: ${{ github.run_number }}" 
+        curl -s https://${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }} | grep "Build: ${{ github.run_number }}" 
       if: github.ref == 'refs/heads/dev'
 
     - name: Create Pull Request
