@@ -182,6 +182,7 @@ jobs:
              echo "Curl command was successful, creating pull request..."
              git config user.name "GitHub Actions"
              git config user.email "actions@github.com"
+             git remote set-url origin https://x-access-token:${{ secrets.REPO_ACCESS_TOKEN }}@github.com/${{ github.repository }}
              git fetch origin master
              git checkout -b merge-dev-to-master
              git merge --no-ff dev
