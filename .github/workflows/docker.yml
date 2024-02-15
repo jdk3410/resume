@@ -191,5 +191,6 @@ jobs:
               echo "Curl command failed, not creating pull request."
               exit 1
             fi
-
+          env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
  
