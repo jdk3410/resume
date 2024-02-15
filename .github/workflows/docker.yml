@@ -9,9 +9,11 @@ on:
       - 'README.md'
       - '.github/**'
   schedule:
-    - cron: '0 14 1 * *' # We need to rebuild this monthly to get the latest security updates and to get the new LetsEncrypt certificate
-                         # This only runs on the default branch, which is master. If we want to run this on both branches automatically we have to split this in to two workflows
-  workflow_dispatch: # Manually run the workflow
+    - cron: '0 14 1 * *' 
+    # We need to rebuild this monthly to get the latest security updates and to get the new LetsEncrypt certificate
+    # This only runs on the default branch, which is master. If we want to run this on both branches automatically we have to split this in to two workflows
+  workflow_dispatch:  
+  # Manually run the workflow
     
 jobs:
   build:
@@ -23,8 +25,8 @@ jobs:
       ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
       ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
       IMAGE_TAG: ${{ github.sha }}
-      TASK: ${{ vars.TASK }} # This is the name of the task definition for ECS
-      DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
+      TASK: ${{ vars.TASK }} # This is the name of the task definition for ECS, set in the repository variables
+      DOMAIN_NAME: ${{ vars.DOMAIN_NAME }} # This is the domain name of the website, set in the repository variables
       SUB_DOMAIN: ${{ github.ref == 'refs/heads/dev' && 'dev' || github.ref == 'refs/heads/master' && 'www' || '' }}
     
     steps:
@@ -35,8 +37,9 @@ jobs:
       run: |
         npm install
         npm test
-      if: github.ref == 'refs/heads/dev' # The plan is to merge dev into master only if the tests pass
-    
+      if: github.ref == 'refs/heads/dev' # The plan is to merge dev into master only if the tests pass. Since the dev branch is being pulled into master, we don't need to run the tests again for master
+      # End of CI
+
     - name: Set subdomain for dev branch
       run: echo "SUB_DOMAIN=dev" >> $GITHUB_ENV
       if: github.ref == 'refs/heads/dev'
@@ -44,7 +47,8 @@ jobs:
     - name: Set subdomain for master branch
       run: echo "SUB_DOMAIN=www" >> $GITHUB_ENV
       if: github.ref == 'refs/heads/master'
-
+    
+      # Start of CD
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
