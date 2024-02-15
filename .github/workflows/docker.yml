@@ -182,16 +182,15 @@ jobs:
              echo "Curl command was successful, creating pull request..."
              git config user.name "GitHub Actions"
              git config user.email "actions@github.com"
-             git remote set-url origin https://x-access-token:${{ secrets.REPO_ACCESS_TOKEN }}@github.com/${{ github.repository }}
+             git remote set-url origin https://x-access-token:${{ secrets.REPO_ACCESS_TOKEN }}@github.com/jdk3410/resume
              git fetch origin master
              git checkout -b merge-dev-to-master
              git merge --no-ff dev
              git push origin merge-dev-to-master
              gh pr create --title "Merge dev into master" --body "This PR is automatically generated. Merging will happen automatically upon successful completion of all required checks and reviews." --base master --head merge-dev-to-master --label automerge
            else
-             echo "Curl command failed, not creating pull request."
-             exit 1
+              echo "Curl command failed, not creating pull request."
+              exit 1
             fi
-          env:
-            GH_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}  
+
  
