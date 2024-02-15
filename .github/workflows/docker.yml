@@ -13,8 +13,7 @@ on:
     # We need to rebuild this monthly to get the latest security updates and to get the new LetsEncrypt certificate
     # This only runs on the default branch, which is master. If we want to run this on both branches automatically we have to split this in to two workflows
   workflow_dispatch:  
-  
-    
+
 jobs:
   build:
     runs-on: ubuntu-latest
