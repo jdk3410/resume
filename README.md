@@ -7,23 +7,23 @@ a Docker container from certbot to renew the Letsencrypt SSL on a monthly basis 
 to a S3 bucket, where they're then retreived during builds.
 
   TODO:
-- [ ] Write better README
+- [ ] Write better README (README should include a diagram of the infrastructure and GitHub actions workflows, and include how to get everything running)
+- [ ] Observability
+
+  TODONE:
 - ~~[X] Set up SSL cert in docker/dockerfile (Needs letsencrypt/Certbot)~~
 - ~~[X] Set up GitHub actions to re-build image when changes are made~~
 - ~~[X] Set up GitHub actions to push new image to ECR~~
 - ~~[X] Set up GitHub actions to deploy new image on ECS~~
 - ~~[X] Set up GitHub actions to make any required changes if IP of the container changes~~
-- [ ] Create diagram of how it works
 - ~~[X] Build tests in GitHub actions~~
 - ~~[X] Replace placeholders~~
-- [ ] Observability
 - ~~[X] Add variables for hard coded links~~
 - ~~[X] Only actually rebuild when necesary (don't need to rebuild the image when we commit the README)~~
 - ~~[X] dev/master separation~~
 - ~~[ ] Clean up resources if build fails~~
 - ~~[X] Change email~~
 - ~~[X] Since we will switch to using certbot from a GitHub action, need to change Dockerfile, docker.yml, and schedule container renewal~~
-- [ ] Document setup
 - ~~[ ] Restart old version if deploy fails~~
 - ~~[ ] Push certbot out another month, handle conditions where certbot autorenew doesn't complete~~
 
