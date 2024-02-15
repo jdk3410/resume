@@ -192,5 +192,5 @@ jobs:
              exit 1
             fi
           env:
-            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
+            GH_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}  
  
