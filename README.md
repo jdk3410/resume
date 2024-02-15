@@ -33,4 +33,5 @@ to a S3 bucket, where they're then retreived during builds.
  - [ ] Make it extensible so it could be easily useable for any website
  - [ ] Since schedules on GitHub Actions workflows only work on one branch per file, re-write the entire docker.yml into one for each branch
  - [ ] Automerge / AutoPR to pull dev into master
- 
+ - [ ] Explore ways to improve deploy time
+ - [ ] Increase code coverage 
