@@ -13,7 +13,7 @@ on:
     # We need to rebuild this monthly to get the latest security updates and to get the new LetsEncrypt certificate
     # This only runs on the default branch, which is master. If we want to run this on both branches automatically we have to split this in to two workflows
   workflow_dispatch:  
-  # Manually run the workflow
+  
     
 jobs:
   build:
@@ -157,7 +157,7 @@ jobs:
               ]
             }'
 
-    - name: Check dev website for successful deployment
+    - name: Check dev website for successful deployment # Route 53 takes a while to update, so we need to wait a bit before we check the website. We could improve deploy time by fine tuning this
       run: |
         sleep 90
         curl -s https://${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }} | grep "Build: ${{ github.run_number }}" 

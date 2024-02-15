@@ -31,7 +31,7 @@ const Terminal = () => {
             commandOutput = 'Finding the best candidate... For you!';
         } else if (command === 'contact') {
             commandOutput = '----------------------------------\nYour primary server admin is jdk3410!\nIt just so happens he\'s seeking a DevOps position!\nEmail him @ 3410jdk@gmail.com\n----------------------------------\n';
-        } else if (command === 'source') {
+        } else if (command === 'github') {
             window.location.href = 'https://github.com/jdk3410/resume';
         } else if (command === 'exit') {
             commandOutput = 'Crashing this plane... With no survivors!!!';
@@ -68,10 +68,10 @@ const Terminal = () => {
             <nav style={{backgroundColor: '#696969', padding: '10px'}}>
                 <a href="/resume" data-command="resume" onClick={handleLinkClick} style={{color: '#FFFFFF', marginRight: '10px'}}>Resume</a>
                 <a href="/contact" data-command="contact" onClick={handleLinkClick} style={{color: '#FFFFFF', marginRight: '10px'}}>Contact</a>
-                <a href="/source" data-command="source" onClick={handleLinkClick} style={{color: '#FFFFFF', marginRight: '10px'}}>Source</a>
+                <a href="/github" data-command="github" onClick={handleLinkClick} style={{color: '#FFFFFF', marginRight: '10px'}}>GitHub</a>
                 <a href="/exit" data-command="exit" onClick={handleLinkClick} style={{color: '#FFFFFF', marginRight: '10px'}}>Exit</a>
             </nav>
-            <p style={{color: '#000000'}}>Description of available options: <strong>resume</strong> (displays résumé), <strong>contact</strong> (displays contact info), <strong>source</strong> (opens GitHub repo for this site), <strong>exit</strong> (leaves site)</p>
+            <p style={{color: '#000000'}}>Description of available options: <strong>resume</strong> (displays résumé), <strong>contact</strong> (displays contact info), <strong>github</strong> (opens GitHub repo for this site), <strong>exit</strong> (leaves site)</p>
             <div className="flashing-text">Welcome to UNIX System V!</div>
             <div className="flashing-text">Select an option from the menu above</div>
             <div className="flashing-text">Advanced users could attempt typing commands below</div>
