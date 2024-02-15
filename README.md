@@ -10,7 +10,7 @@ to a S3 bucket, where they're then retreived during builds.
 - [ ] Write better README (README should include a diagram of the infrastructure and GitHub actions workflows, and include how to get everything running)
 - [ ] Observability
 
-  TODONE:
+  TODONE/TODIDN'T:
 - ~~[X] Set up SSL cert in docker/dockerfile (Needs letsencrypt/Certbot)~~
 - ~~[X] Set up GitHub actions to re-build image when changes are made~~
 - ~~[X] Set up GitHub actions to push new image to ECR~~
