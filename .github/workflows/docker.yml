@@ -185,7 +185,7 @@ jobs:
              git remote set-url origin https://x-access-token:${{ secrets.REPO_ACCESS_TOKEN }}@github.com/jdk3410/resume
              git fetch origin master
              git checkout -b merge-dev-to-master
-             git pull --strategy-option theirs origin merge-dev-to-master
+             git pull --rebase origin merge-dev-to-master
              git merge --no-ff dev
              git push origin merge-dev-to-master
              echo $(gh pr create --repo jdk3410/resume --title "Merge dev into master" --body "This PR is automatically generated. Merging will happen automatically upon successful completion of all required checks and reviews." --base master --head merge-dev-to-master --label automerge -f)
@@ -194,5 +194,5 @@ jobs:
             exit 1
           fi
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
  
