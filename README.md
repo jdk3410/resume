@@ -9,6 +9,7 @@ to a S3 bucket, where they're then retreived during builds.
   TODO:
 - [ ] Write better README (README should include a diagram of the infrastructure and GitHub actions workflows, and include how to get everything running)
 - [ ] Observability
+- [ ] Bucket names should be variables
 
 
   TODONE/TODIDN'T:
@@ -27,6 +28,7 @@ to a S3 bucket, where they're then retreived during builds.
 - ~~[X] Since we will switch to using certbot from a GitHub action, need to change Dockerfile, docker.yml, and schedule container renewal~~
 - ~~[ ] Restart old version if deploy fails~~
 - ~~[ ] Push certbot out another month, handle conditions where certbot autorenew doesn't complete~~
+- ~~[X] Bucket names and emails should be variables~~
 
 
  Future Improvements:

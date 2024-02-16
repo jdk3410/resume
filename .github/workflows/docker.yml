@@ -25,6 +25,7 @@ jobs:
       ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
       IMAGE_TAG: ${{ github.sha }}
       TASK: ${{ vars.TASK }} # This is the name of the task definition for ECS, set in the repository variables
+      BUCKET_NAME: ${{ vars.BUCKET_NAME }} # This is the name of the S3 bucket where the certificates are stored, set in the repository variables
       DOMAIN_NAME: ${{ vars.DOMAIN_NAME }} # This is the domain name of the website, set in the repository variables
       SUB_DOMAIN: ${{ github.ref == 'refs/heads/dev' && 'dev' || github.ref == 'refs/heads/master' && 'www' || '' }}
     
@@ -58,8 +59,8 @@ jobs:
     - name: Copy certificates from S3
       run: |
         mkdir -p ./letsencrypt/live/$DOMAIN_NAME/
-        aws s3 cp s3://jdk3410certs/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/fullchain.pem ./letsencrypt/live/${{ env.DOMAIN_NAME }}/fullchain.pem
-        aws s3 cp s3://jdk3410certs/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/privkey.pem ./letsencrypt/live/${{ env.DOMAIN_NAME }}/privkey.pem
+        aws s3 cp s3://${{ env.BUCKET_NAME }}/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/fullchain.pem ./letsencrypt/live/${{ env.DOMAIN_NAME }}/fullchain.pem
+        aws s3 cp s3://${{ env.BUCKET_NAME }}/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/privkey.pem ./letsencrypt/live/${{ env.DOMAIN_NAME }}/privkey.pem
 
     - name: Login to Amazon ECR
       id: login-ecr
