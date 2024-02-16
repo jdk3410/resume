@@ -13,14 +13,16 @@ jobs:
       AWS_REGION: ${{ secrets.AWS_REGION }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      DOMAIN_NAME: ${{ vars.DOMAIN_NAME }} 
+      DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
+      BUCKET_NAME: ${{ vars.BUCKET_NAME }}
+      CERT_EMAIL: ${{ vars.CERT_EMAIL }}
       SUB_DOMAIN: www
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
     - name: Run Certbot
       run: |
-        docker run --env AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} --env AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} --env AWS_REGION=${{ secrets.AWS_REGION }} -v "$(pwd)/letsencrypt:/etc/letsencrypt" certbot/dns-route53 certonly --force-renew --dns-route53 -d ${{ env.DOMAIN_NAME }} -d ${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }} --agree-tos --email 3410jdk@gmail.com --non-interactive
+        docker run --env AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} --env AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} --env AWS_REGION=${{ secrets.AWS_REGION }} -v "$(pwd)/letsencrypt:/etc/letsencrypt" certbot/dns-route53 certonly --force-renew --dns-route53 -d ${{ env.DOMAIN_NAME }} -d ${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }} --agree-tos --email ${{ env.CERT_EMAIL }} --non-interactive
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
@@ -31,5 +33,5 @@ jobs:
       run: sudo chown -R $(whoami) ./letsencrypt
     - name: Copy certificates to S3
       run: |
-        aws s3 cp ./letsencrypt/live/${{ env.DOMAIN_NAME }}/fullchain.pem s3://jdk3410certs/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/
-        aws s3 cp ./letsencrypt/live/${{ env.DOMAIN_NAME }}/privkey.pem s3://jdk3410certs/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/
+        aws s3 cp ./letsencrypt/live/${{ env.DOMAIN_NAME }}/fullchain.pem s3://${{ env.BUCKET_NAME }}/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/
+        aws s3 cp ./letsencrypt/live/${{ env.DOMAIN_NAME }}/privkey.pem s3://${{ env.BUCKET_NAME }}/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/
