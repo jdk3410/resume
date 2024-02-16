@@ -9,7 +9,7 @@ to a S3 bucket, where they're then retreived during builds.
   TODO:
 - [ ] Write better README (README should include a diagram of the infrastructure and GitHub actions workflows, and include how to get everything running)
 - [ ] Observability
-- [ ] Bucket names should be variables
+
 
 
   TODONE/TODIDN'T:
