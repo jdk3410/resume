@@ -10,8 +10,6 @@ to a S3 bucket, where they're then retreived during builds.
 - [ ] Write better README (README should include a diagram of the infrastructure and GitHub actions workflows, and include how to get everything running)
 - [ ] Observability
 
-
-
   TODONE/TODIDN'T:
 ~~- [X] Set up e-mail forward~~
 - ~~[X] Set up SSL cert in docker/dockerfile (Needs letsencrypt/Certbot)~~
@@ -30,6 +28,7 @@ to a S3 bucket, where they're then retreived during builds.
 - ~~[ ] Restart old version if deploy fails~~
 - ~~[ ] Push certbot out another month, handle conditions where certbot autorenew doesn't complete~~
 - ~~[X] Bucket names and emails should be variables~~
+
 
 
  Future Improvements:
