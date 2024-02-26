@@ -11,7 +11,7 @@ to a S3 bucket, where they're then retreived during builds.
 - [ ] Observability
 
   TODONE/TODIDN'T:
-~~- [X] Set up e-mail forward~~
+- ~~[X] Set up e-mail forward~~
 - ~~[X] Set up SSL cert in docker/dockerfile (Needs letsencrypt/Certbot)~~
 - ~~[X] Set up GitHub actions to re-build image when changes are made~~
 - ~~[X] Set up GitHub actions to push new image to ECR~~
