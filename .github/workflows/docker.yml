@@ -131,7 +131,7 @@ jobs:
         curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records/${{ env.DNS_RECORD_ID }}" \
         -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
         -H "Content-Type: application/json" \
-        --data '{"type":"A","name":"${{ env.DOMAIN_NAME }}","content":"'$NEW_IP'","ttl":120,"proxied":false}'
+        --data '{"type":"A","name":"${{ env.SUB_DOMAIN}}.${{ env.DOMAIN_NAME }}","content":"'$NEW_IP'","ttl":120,"proxied":false}'
 
     - name: Update Cloudflare DNS record for dev
       if: github.ref == 'refs/heads/dev'
