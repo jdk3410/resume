@@ -113,51 +113,36 @@ jobs:
           
           echo "TASK_ARN=$TASK_ARN" >> $GITHUB_ENV
 
-    - name: Update Route 53 DNS record for master # The step of updating DNS could be done with Service Discovery but that's a bit more complex
+    - name: Get Cloudflare DNS record ID
+      run: |
+        DNS_RECORD_NAME="${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}"
+        DNS_RECORD_ID=$(curl -X GET "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records?name=$DNS_RECORD_NAME" \
+        -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+        -H "Content-Type: application/json" | jq -r '.result[0].id')
+        echo "DNS_RECORD_ID=$DNS_RECORD_ID" >> $GITHUB_ENV
+    
+    
+    
+    
+    - name: Update Cloudflare DNS record for master
       if: github.ref == 'refs/heads/master'
       run: |
-            NEW_IP=$(aws ecs describe-tasks --cluster ${{ env.TASK }} --tasks ${{ env.TASK_ARN }} --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' --output text | xargs aws ec2 describe-network-interfaces --network-interface-ids | jq -r '.NetworkInterfaces[0].Association.PublicIp')
-            aws route53 change-resource-record-sets --hosted-zone-id ${{ secrets.HOSTED_ZONE_ID }} --change-batch '{
-              "Changes": [
-                {
-                  "Action": "UPSERT",
-                  "ResourceRecordSet": {
-                    "Name": "'${{ env.DOMAIN_NAME }}'",
-                    "Type": "A",
-                    "TTL": 300,
-                    "ResourceRecords": [
-                      {
-                        "Value": "'$NEW_IP'"
-                      }
-                    ]
-                  }
-                }
-              ]
-            }'
-        
-    - name: Update Route 53 DNS record for dev
+        NEW_IP=$(aws ecs describe-tasks --cluster ${{ env.TASK }} --tasks ${{ env.TASK_ARN }} --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' --output text | xargs aws ec2 describe-network-interfaces --network-interface-ids | jq -r '.NetworkInterfaces[0].Association.PublicIp')
+        curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records/${{ env.DNS_RECORD_ID }}" \
+        -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+        -H "Content-Type: application/json" \
+        --data '{"type":"A","name":"${{ env.SUB_DOMAIN}}.${{ env.DOMAIN_NAME }}","content":"'$NEW_IP'","ttl":120,"proxied":false}'
+
+    - name: Update Cloudflare DNS record for dev
       if: github.ref == 'refs/heads/dev'
       run: |
-            NEW_IP=$(aws ecs describe-tasks --cluster ${{ env.TASK }} --tasks ${{ env.TASK_ARN }} --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' --output text | xargs aws ec2 describe-network-interfaces --network-interface-ids | jq -r '.NetworkInterfaces[0].Association.PublicIp')
-            aws route53 change-resource-record-sets --hosted-zone-id ${{ secrets.HOSTED_ZONE_ID }} --change-batch '{
-              "Changes": [
-                {
-                  "Action": "UPSERT",
-                  "ResourceRecordSet": {
-                    "Name": "'${{ env.SUB_DOMAIN}}.${{ env.DOMAIN_NAME }}'",
-                    "Type": "A",
-                    "TTL": 300,
-                    "ResourceRecords": [
-                      {
-                        "Value": "'$NEW_IP'"
-                      }
-                    ]
-                  }
-                }
-              ]
-            }'
+        NEW_IP=$(aws ecs describe-tasks --cluster ${{ env.TASK }} --tasks ${{ env.TASK_ARN }} --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' --output text | xargs aws ec2 describe-network-interfaces --network-interface-ids | jq -r '.NetworkInterfaces[0].Association.PublicIp')
+        curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records/${{ env.DNS_RECORD_ID }}" \
+        -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+        -H "Content-Type: application/json" \
+        --data '{"type":"A","name":"${{ env.SUB_DOMAIN}}.${{ env.DOMAIN_NAME }}","content":"'$NEW_IP'","ttl":120,"proxied":false}'  
 
-    - name: Check dev website for successful deployment # Route 53 takes a while to update, so we need to wait a bit before we check the website. We could improve deploy time by fine tuning this
+    - name: Check dev website for successful deployment # Route 53 (now cloudflare) takes a while to update, so we need to wait a bit before we check the website. We could improve deploy time by fine tuning this
       run: |
         sleep 90
         curl -s https://${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }} | grep "Build: ${{ github.run_number }}" 
