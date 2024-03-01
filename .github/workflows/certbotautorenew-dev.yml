@@ -21,13 +21,21 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+    
     - name: Run Certbot
       run: |
         sed -i 's/this_is_dumb/${{ secrets.CLOUDFLARE_API_TOKEN }}/g' cloudflare.ini
         chmod 600 cloudflare.ini
         docker run -v "$(pwd)/letsencrypt:/etc/letsencrypt" -v "$(pwd)/cloudflare.ini:/etc/letsencrypt/cloudflare.ini" certbot/dns-cloudflare certonly --force-renew --dns-cloudflare --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini --dns-cloudflare-propagation-seconds 60 -d ${{ env.DOMAIN_NAME }} -d ${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }} --agree-tos --email ${{ env.CERT_EMAIL }} --non-interactive
+    
     - name: Change ownership of letsencrypt directory
       run: sudo chown -R $(whoami) ./letsencrypt
+    
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.DEV_GOOGLE_APPLICATION_CREDENTIALS }} 
+    
     - name: Setup Google Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
       with:
