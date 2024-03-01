@@ -1,3 +1,6 @@
+# We can't include certbot renew in the main Docker image because if it runs more than a few times it gets throttled by Let's Encrypt. 
+# Instead, we'll use GitHub Actions to run certbot renew once a month and then copy the certificates to Cloud Storage.
+
 name: Certbot Auto Renew - dev
 
 on:
@@ -7,31 +10,38 @@ on:
 
 jobs:
   renew_dev:
-   
     runs-on: ubuntu-latest
     env:
-      AWS_REGION: ${{ secrets.AWS_REGION }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
       BUCKET_NAME: ${{ vars.BUCKET_NAME }} 
       CERT_EMAIL: ${{ vars.CERT_EMAIL }}
       SUB_DOMAIN: dev
+      GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.DEV_GOOGLE_APPLICATION_CREDENTIALS }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+    
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.DEV_GOOGLE_APPLICATION_CREDENTIALS }} 
+
     - name: Run Certbot
       run: |
-        docker run --env AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} --env AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} --env AWS_REGION=${{ secrets.AWS_REGION }} -v "$(pwd)/letsencrypt:/etc/letsencrypt" certbot/dns-route53 certonly --force-renew --dns-route53 -d ${{ env.DOMAIN_NAME }} -d ${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }} --agree-tos --email ${{ env.CERT_EMAIL }} --non-interactive
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
+        sed -i 's/this_is_dumb/${{ secrets.CLOUDFLARE_API_TOKEN }}/g' cloudflare.ini
+        chmod 600 cloudflare.ini
+        docker run -v "$(pwd)/letsencrypt:/etc/letsencrypt" -v "$(pwd)/cloudflare.ini:/etc/letsencrypt/cloudflare.ini" certbot/dns-cloudflare certonly --force-renew --dns-cloudflare --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini --dns-cloudflare-propagation-seconds 60 -d ${{ env.DOMAIN_NAME }} -d ${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }} --agree-tos --email ${{ env.CERT_EMAIL }} --non-interactive
+    
     - name: Change ownership of letsencrypt directory
       run: sudo chown -R $(whoami) ./letsencrypt
-    - name: Copy certificates to S3
+    
+    - name: Setup Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: ${{ secrets.DEV_GCP_PROJECT_ID }}
+        
+    - name: Copy certificates to Google Cloud Storage
       run: |
-        aws s3 cp ./letsencrypt/live/${{ env.DOMAIN_NAME }}/fullchain.pem s3://${{ env.BUCKET_NAME }}/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/
-        aws s3 cp ./letsencrypt/live/${{ env.DOMAIN_NAME }}/privkey.pem s3://${{ env.BUCKET_NAME }}/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/
+        gsutil cp ./letsencrypt/live/${{ env.DOMAIN_NAME }}/fullchain.pem gs://${{ env.BUCKET_NAME }}/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/
+        gsutil cp ./letsencrypt/live/${{ env.DOMAIN_NAME }}/privkey.pem gs://${{ env.BUCKET_NAME }}/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/
