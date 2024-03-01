@@ -23,7 +23,8 @@ jobs:
       uses: actions/checkout@v4
     - name: Run Certbot
       run: |
-        docker run --env CLOUDFLARE_API_TOKEN=${{ secrets.CLOUDFLARE_API_TOKEN }} -v "$(pwd)/letsencrypt:/etc/letsencrypt" certbot/dns-cloudflare certonly --force-renew --dns-cloudflare -d ${{ env.DOMAIN_NAME }} -d ${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }} --agree-tos --email ${{ env.CERT_EMAIL }} --non-interactive
+        sed -i 's/this_is_dumb/${{ secrets.CLOUDFLARE_API_TOKEN }}/g' cloudflare.ini
+        docker run -v "$(pwd)/letsencrypt:/etc/letsencrypt" -v "$(pwd)/cloudflare.ini:/etc/letsencrypt/cloudflare.ini" certbot/dns-cloudflare certonly --force-renew --dns-cloudflare --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini -d ${{ env.DOMAIN_NAME }} -d ${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }} --agree-tos --email ${{ env.CERT_EMAIL }} --non-interactive
     - name: Change ownership of letsencrypt directory
       run: sudo chown -R $(whoami) ./letsencrypt
     - name: Setup Google Cloud SDK
