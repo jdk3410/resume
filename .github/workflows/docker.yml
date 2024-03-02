@@ -123,9 +123,9 @@ jobs:
     - name: Deploy to GKE
       run: |
           gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} --zone ${{ env.GKE_ZONE }}
-          kubectl set image deployment/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }} ${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}=${{ env.IMAGE }}:${{ github.sha }} --namespace=$NAMESPACE
+          kubectl set image deployment/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }} ${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}=${{ env.IMAGE }}:${{ github.sha }} --namespace=$NAMESPACE --record
           kubectl rollout status deployment/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }} --namespace=$NAMESPACE
-
+   # need to delete old replicasets here
     
     # We could set up an ingress to save on IP usage but we'd need to handle grabbing/updating the SSL certificate here
 
