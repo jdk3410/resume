@@ -91,10 +91,7 @@ jobs:
         source /home/runner/.bashrc
         gcloud version
     
-    - name: Authenticate to Google Cloud
-      run: |
-        echo -n "${{ secrets.GCP_SA_KEY }}" > sa_key.json
-        gcloud auth activate-service-account --key-file=sa_key.json
+    
     
     - name: Authenticate Docker to Artifact Registry
       run: gcloud auth configure-docker us-east1-docker.pkg.dev
