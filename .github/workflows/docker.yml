@@ -24,11 +24,11 @@ jobs:
       GKE_PROJECT_ID: ${{ secrets.GKE_PROJECT_ID }}
       GKE_CLUSTER: ${{ secrets.GKE_CLUSTER }}
       GKE_ZONE: ${{ secrets.GKE_ZONE }}
-      IMAGE: ${{ secrets.ARTIFACT_REGISTRY_LOCATION }}-docker.pkg.dev/${{ secrets.DEV_GCP_PROJECT_ID }}/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}
-      #IMAGE: us-east1-docker.pkg.dev/${{ secrets.DEV_GCP_PROJECT_ID }}/resume-dev/resume-dev
       BUCKET_NAME: ${{ vars.BUCKET_NAME }}
       DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
       PROJECT: ${{ vars.PROJECT }}
+      IMAGE: ${{ secrets.ARTIFACT_REGISTRY_LOCATION }}-docker.pkg.dev/${{ secrets.DEV_GCP_PROJECT_ID }}/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}
+      #IMAGE: us-east1-docker.pkg.dev/${{ secrets.DEV_GCP_PROJECT_ID }}/resume-dev/resume-dev
     
     steps:
     - name: Checkout code
