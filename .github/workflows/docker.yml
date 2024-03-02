@@ -122,6 +122,10 @@ jobs:
     - name: Set NAMESPACE
       run: echo "NAMESPACE=$(echo ${{ env.DOMAIN_NAME }} | sed 's/\.com//')" >> $GITHUB_ENV
     
+    - name: Install gcloud components
+      run: |
+        gcloud components install kubectl gke-gcloud-auth-plugin
+
     - name: Deploy to GKE
       run: |
           gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} --zone ${{ env.GKE_ZONE }}
