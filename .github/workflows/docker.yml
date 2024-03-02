@@ -18,29 +18,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      # All the GCP stuff
+      
+      SUB_DOMAIN: ${{ github.ref == 'refs/heads/dev' && 'dev' || github.ref == 'refs/heads/master' && 'www' || '' }}
       PROJECT_ID: ${{ secrets.DEV_GCP_PROJECT_ID }}
       GKE_PROJECT_ID: ${{ secrets.GKE_PROJECT_ID }}
       GKE_CLUSTER: ${{ secrets.GKE_CLUSTER }}
       GKE_ZONE: ${{ secrets.GKE_ZONE }}
-      #IMAGE: ${{ secrets.ARTIFACT_REGISTRY_LOCATION }}-docker.pkg.dev/${{ secrets.DEV_GCP_PROJECT_ID }}/resume-dev/resume-dev # this needs to be fixed / varibalized
-      IMAGE: us-east1-docker.pkg.dev/${{ secrets.DEV_GCP_PROJECT_ID }}/resume-dev/resume-dev
+      IMAGE: ${{ secrets.ARTIFACT_REGISTRY_LOCATION }}-docker.pkg.dev/${{ secrets.DEV_GCP_PROJECT_ID }}/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}
+      #IMAGE: us-east1-docker.pkg.dev/${{ secrets.DEV_GCP_PROJECT_ID }}/resume-dev/resume-dev
       BUCKET_NAME: ${{ vars.BUCKET_NAME }}
       DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
-      
-      # All the AWS stuff - leaving here for reference
-      #AWS_REGION: ${{ secrets.AWS_REGION }}
-      #AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      #ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-      #ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
-      #TASK: ${{ vars.TASK }} # This is the name of the task definition for ECS, set in the repository variables
-      #BUCKET_NAME: ${{ vars.BUCKET_NAME }} # This is the name of the S3 bucket where the certificates are stored, set in the repository variables
-      #DOMAIN_NAME: ${{ vars.DOMAIN_NAME }} # This is the domain name of the website, set in the repository variables
-      
-
-      # this is unused IMAGE_TAG: ${{ github.sha }}
-      SUB_DOMAIN: ${{ github.ref == 'refs/heads/dev' && 'dev' || github.ref == 'refs/heads/master' && 'www' || '' }}
+      PROJECT: ${{ vars.PROJECT }}
     
     steps:
     - name: Checkout code
@@ -75,7 +63,7 @@ jobs:
       with:
         project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-# This isn't going to do anything since k8s will have to terminate SSL but it'll be good to check permissions anyway
+    # If we decide to handle SSL through a k8s ingress, we can remove this step as well as the steps in Dockerfile
     - name: Copy certificates from GCS
       run: |
         mkdir -p ./letsencrypt/live/${{ env.DOMAIN_NAME }}/
@@ -129,12 +117,11 @@ jobs:
     - name: Deploy to GKE
       run: |
           gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} --zone ${{ env.GKE_ZONE }}
-          kubectl set image deployment/resume-dev resume-dev=${{ env.IMAGE }}:${{ github.sha }} --namespace=$NAMESPACE
-          kubectl rollout status deployment/resume-dev --namespace=$NAMESPACE
+          kubectl set image deployment/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }} ${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}=${{ env.IMAGE }}:${{ github.sha }} --namespace=$NAMESPACE
+          kubectl rollout status deployment/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }} --namespace=$NAMESPACE
 
-    # Might need to put any post deployment checks here
-
-    # We could set up an ingress to save on IP usage but we'd need to handle grabing/updating the SSL certificate here
+    
+    # We could set up an ingress to save on IP usage but we'd need to handle grabbing/updating the SSL certificate here
 
     - name: Get Cloudflare DNS record ID
       run: |
@@ -145,15 +132,15 @@ jobs:
         echo "DNS_RECORD_ID=$DNS_RECORD_ID" >> $GITHUB_ENV
     
     
-    # We may not use a LB 
+    
     # Need to add variables for the service name and the port
-    # The IPs are mostly static so this might be pointless
+    # The IPs are mostly static so this won't change often
     
     - name: Update Cloudflare DNS record for master
       if: github.ref == 'refs/heads/master'
       run: |
         
-        NEW_IP=$(kubectl get service resume-www-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}' --namespace=$NAMESPACE)
+        NEW_IP=$(kubectl get service ${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}' --namespace=$NAMESPACE)
         curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records/${{ env.DNS_RECORD_ID }}" \
         -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
         -H "Content-Type: application/json" \
@@ -163,14 +150,14 @@ jobs:
       if: github.ref == 'refs/heads/dev'
       run: |
         
-        NEW_IP=$(kubectl get service resume-dev-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}' --namespace=$NAMESPACE)
+        NEW_IP=$(kubectl get service ${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}' --namespace=$NAMESPACE)
         curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records/${{ env.DNS_RECORD_ID }}" \
         -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
         -H "Content-Type: application/json" \
         --data '{"type":"A","name":"${{ env.SUB_DOMAIN}}.${{ env.DOMAIN_NAME }}","content":"'$NEW_IP'","ttl":120,"proxied":false}'
 
-    - name: Check dev website for successful deployment # DNS takes a while to update, so we need to wait a bit before we check the website. We could improve deploy time by fine tuning this
+    - name: Check dev website for successful deployment # kubectl rollout doesn't exit until the rollout is complete, so the wait time here can be less/nothing 
       run: |
-        sleep 60
+        sleep 5
         curl -s https://${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }} | grep "Build: ${{ github.run_number }}" 
       if: github.ref == 'refs/heads/dev'
