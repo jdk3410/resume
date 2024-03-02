@@ -19,15 +19,15 @@ jobs:
     runs-on: ubuntu-latest
     env:
       
-      SUB_DOMAIN: ${{ github.ref == 'refs/heads/dev' && 'dev' || github.ref == 'refs/heads/master' && 'www' || '' }}
+      #SUB_DOMAIN: ${{ github.ref == 'refs/heads/dev' && 'dev' || github.ref == 'refs/heads/master' && 'www' || '' }}
       PROJECT_ID: ${{ secrets.DEV_GCP_PROJECT_ID }}
       GKE_PROJECT_ID: ${{ secrets.GKE_PROJECT_ID }}
       GKE_CLUSTER: ${{ secrets.GKE_CLUSTER }}
       GKE_ZONE: ${{ secrets.GKE_ZONE }}
-      BUCKET_NAME: ${{ vars.BUCKET_NAME }}
+      BUCKET_NAME: ${{ vars.BUCKET_NAME }} 
       DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
       PROJECT: ${{ vars.PROJECT }}
-      IMAGE: ${{ secrets.ARTIFACT_REGISTRY_LOCATION }}-docker.pkg.dev/${{ secrets.DEV_GCP_PROJECT_ID }}/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}
+      #IMAGE: ${{ secrets.ARTIFACT_REGISTRY_LOCATION }}-docker.pkg.dev/${{ secrets.DEV_GCP_PROJECT_ID }}/${{ vars.PROJECT }}-${{ env.SUB_DOMAIN }}/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}
       #IMAGE: us-east1-docker.pkg.dev/${{ secrets.DEV_GCP_PROJECT_ID }}/resume-dev/resume-dev
     
     steps:
@@ -40,7 +40,9 @@ jobs:
         npm test
       if: github.ref == 'refs/heads/dev' # The plan is to merge dev into master only if the tests pass. Since the dev branch is being pulled into master, we don't need to run the tests again for master
       # End of CI
-
+     
+    
+    
     - name: Set subdomain for dev branch
       run: echo "SUB_DOMAIN=dev" >> $GITHUB_ENV
       if: github.ref == 'refs/heads/dev'
@@ -49,6 +51,10 @@ jobs:
       run: echo "SUB_DOMAIN=www" >> $GITHUB_ENV
       if: github.ref == 'refs/heads/master'
     
+    - name: Set IMAGE
+      run: echo "IMAGE=${{ secrets.ARTIFACT_REGISTRY_LOCATION }}-docker.pkg.dev/${{ secrets.DEV_GCP_PROJECT_ID }}/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}" >> $GITHUB_ENV  
+
+
       # Start of CD
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -132,9 +138,7 @@ jobs:
         echo "DNS_RECORD_ID=$DNS_RECORD_ID" >> $GITHUB_ENV
     
     
-    
-    # Need to add variables for the service name and the port
-    # The IPs are mostly static so this won't change often
+    # The IPs are mostly static so this won't change often - could look in to performing this only when the IP has changed. Would have to check if the IP has changed in the Cloudflare DNS record
     
     - name: Update Cloudflare DNS record for master
       if: github.ref == 'refs/heads/master'
