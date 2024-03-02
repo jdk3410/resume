@@ -23,7 +23,8 @@ jobs:
       GKE_PROJECT_ID: ${{ secrets.GKE_PROJECT_ID }}
       GKE_CLUSTER: ${{ secrets.GKE_CLUSTER }}
       GKE_ZONE: ${{ secrets.GKE_ZONE }}
-      IMAGE: ${{ secrets.ARTIFACT_REGISTRY_LOCATION }}-docker.pkg.dev/${{ secrets.DEV_GCP_PROJECT_ID }}/resume-dev/resume-dev # this needs to be fixed / varibalized
+      #IMAGE: ${{ secrets.ARTIFACT_REGISTRY_LOCATION }}-docker.pkg.dev/${{ secrets.DEV_GCP_PROJECT_ID }}/resume-dev/resume-dev # this needs to be fixed / varibalized
+      IMAGE: us-east1-docker.pkg.dev/${{ secrets.DEV_GCP_PROJECT_ID }}/resume-dev/resume-dev
       BUCKET_NAME: ${{ vars.BUCKET_NAME }}
       DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
       
@@ -38,7 +39,7 @@ jobs:
       #DOMAIN_NAME: ${{ vars.DOMAIN_NAME }} # This is the domain name of the website, set in the repository variables
       
 
-      IMAGE_TAG: ${{ github.sha }}
+      # this is unused IMAGE_TAG: ${{ github.sha }}
       SUB_DOMAIN: ${{ github.ref == 'refs/heads/dev' && 'dev' || github.ref == 'refs/heads/master' && 'www' || '' }}
     
     steps:
@@ -85,8 +86,9 @@ jobs:
       run: sed -i 's/RUN_NUMBER_PLACEHOLDER/${{ github.run_number }}/g' ./public/index.html
     
     - name: Authenticate Docker to Artifact Registry
-      run: echo "${{ secrets.GCP_SA_KEY }}" | docker login -u _json_key --password-stdin https://${{ secrets.ARTIFACT_REGISTRY_LOCATION }}-docker.pkg.dev
-
+      #run: echo "${{ secrets.GCP_SA_KEY }}" | docker login -u _json_key --password-stdin https://${{ secrets.ARTIFACT_REGISTRY_LOCATION }}-docker.pkg.dev
+      run: echo "${{ secrets.GCP_SA_KEY }}" | docker login -u _json_key --password-stdin https://us-east1-docker.pkg.dev
+    
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
