@@ -74,7 +74,16 @@ jobs:
       with:
         project_id: ${{ secrets.GCP_PROJECT_ID }}
 
+# This isn't going to do anything since k8s will have to terminate SSL but it'll be good to check permissions anyway
+    - name: Copy certificates from GCS
+      run: |
+        mkdir -p ./letsencrypt/live/${{ env.DOMAIN_NAME }}/
+        gsutil cp gs://${{ env.BUCKET_NAME }}/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/fullchain.pem ./letsencrypt/live/${{ env.DOMAIN_NAME }}/fullchain.pem
+        gsutil cp gs://${{ env.BUCKET_NAME }}/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/privkey.pem ./letsencrypt/live/${{ env.DOMAIN_NAME }}/privkey.pem
 
+    - name: Update index.html with run number
+      run: sed -i 's/RUN_NUMBER_PLACEHOLDER/${{ github.run_number }}/g' ./public/index.html
+    
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
@@ -107,17 +116,7 @@ jobs:
           kubectl set image deployment/resume-dev resume-dev=${{ env.IMAGE }}:${{ github.sha }} --namespace=$NAMESPACE
           kubectl rollout status deployment/resume-dev --namespace=$NAMESPACE
 
-    # This isn't going to do anything since k8s will have to terminate SSL but it'll be good to check permissions anyway
-    - name: Copy certificates from GCS
-      run: |
-        mkdir -p ./letsencrypt/live/${{ env.DOMAIN_NAME }}/
-        gsutil cp gs://${{ env.BUCKET_NAME }}/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/fullchain.pem ./letsencrypt/live/${{ env.DOMAIN_NAME }}/fullchain.pem
-        gsutil cp gs://${{ env.BUCKET_NAME }}/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/privkey.pem ./letsencrypt/live/${{ env.DOMAIN_NAME }}/privkey.pem
-
-
-    
-    - name: Update index.html with run number
-      run: sed -i 's/RUN_NUMBER_PLACEHOLDER/${{ github.run_number }}/g' ./public/index.html
+    # Might need to put any post deployment checks here
 
     
 
