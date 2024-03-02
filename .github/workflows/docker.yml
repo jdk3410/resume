@@ -134,7 +134,7 @@ jobs:
 
     # Might need to put any post deployment checks here
 
-    
+    # We could set up an ingress to save on IP usage but we'd need to handle grabing/updating the SSL certificate here
 
     - name: Get Cloudflare DNS record ID
       run: |
@@ -147,12 +147,13 @@ jobs:
     
     # We may not use a LB 
     # Need to add variables for the service name and the port
+    # The IPs are mostly static so this might be pointless
     
     - name: Update Cloudflare DNS record for master
       if: github.ref == 'refs/heads/master'
       run: |
         
-        NEW_IP=$(kubectl get service resume-www -o jsonpath='{.status.loadBalancer.ingress[0].ip}' --namespace=$NAMESPACE)
+        NEW_IP=$(kubectl get service resume-www-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}' --namespace=$NAMESPACE)
         curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records/${{ env.DNS_RECORD_ID }}" \
         -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
         -H "Content-Type: application/json" \
@@ -162,7 +163,7 @@ jobs:
       if: github.ref == 'refs/heads/dev'
       run: |
         
-        NEW_IP=$(kubectl get service resume-dev -o jsonpath='{.status.loadBalancer.ingress[0].ip}' --namespace=$NAMESPACE)
+        NEW_IP=$(kubectl get service resume-dev-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}' --namespace=$NAMESPACE)
         curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records/${{ env.DNS_RECORD_ID }}" \
         -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
         -H "Content-Type: application/json" \
