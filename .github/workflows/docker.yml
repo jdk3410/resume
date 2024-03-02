@@ -89,10 +89,12 @@ jobs:
         project_id: ${{ secrets.GKE_PROJECT_ID }}
         service_account_key: ${{ secrets.GKE_SA_KEY }}
         export_default_credentials: true
-
+    
+    - name: Set NAMESPACE
+      run: echo "NAMESPACE=$(echo ${{ env.DOMAIN_NAME }} | sed 's/\.com//')" >> $GITHUB_ENV
+    
     - name: Deploy to GKE
       run: |
-          NAMESPACE=${{ env.DOMAIN_NAME//.com/ }}
           gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} --zone ${{ env.GKE_ZONE }}
           kubectl set image deployment/resume-dev resume-dev=${{ env.IMAGE }}:${{ github.sha }} --namespace=$NAMESPACE
           kubectl rollout status deployment/resume-dev --namespace=$NAMESPACE
@@ -126,7 +128,7 @@ jobs:
     - name: Update Cloudflare DNS record for master
       if: github.ref == 'refs/heads/master'
       run: |
-        NAMESPACE=${{ env.DOMAIN_NAME//.com/ }}
+        
         NEW_IP=$(kubectl get service resume-www -o jsonpath='{.status.loadBalancer.ingress[0].ip}' --namespace=$NAMESPACE)
         curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records/${{ env.DNS_RECORD_ID }}" \
         -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
@@ -136,7 +138,7 @@ jobs:
     - name: Update Cloudflare DNS record for dev
       if: github.ref == 'refs/heads/dev'
       run: |
-        NAMESPACE=${{ env.DOMAIN_NAME//.com/ }}
+        
         NEW_IP=$(kubectl get service resume-dev -o jsonpath='{.status.loadBalancer.ingress[0].ip}' --namespace=$NAMESPACE)
         curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records/${{ env.DNS_RECORD_ID }}" \
         -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
