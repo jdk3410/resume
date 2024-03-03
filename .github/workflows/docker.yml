@@ -18,17 +18,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      
-      #SUB_DOMAIN: ${{ github.ref == 'refs/heads/dev' && 'dev' || github.ref == 'refs/heads/master' && 'www' || '' }}
-      PROJECT_ID: ${{ secrets.DEV_GCP_PROJECT_ID }}
-      GKE_PROJECT_ID: ${{ secrets.GKE_PROJECT_ID }}
+      #PROJECT_ID: ${{ secrets.DEV_GCP_PROJECT_ID }}
+      #GKE_PROJECT_ID: ${{ secrets.GKE_PROJECT_ID }}
       GKE_CLUSTER: ${{ secrets.GKE_CLUSTER }}
       GKE_ZONE: ${{ secrets.GKE_ZONE }}
       BUCKET_NAME: ${{ vars.BUCKET_NAME }} 
       DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
       PROJECT: ${{ vars.PROJECT }}
-      #IMAGE: ${{ secrets.ARTIFACT_REGISTRY_LOCATION }}-docker.pkg.dev/${{ secrets.DEV_GCP_PROJECT_ID }}/${{ vars.PROJECT }}-${{ env.SUB_DOMAIN }}/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}
-      #IMAGE: us-east1-docker.pkg.dev/${{ secrets.DEV_GCP_PROJECT_ID }}/resume-dev/resume-dev
+      
     
     steps:
     - name: Checkout code
@@ -96,7 +93,7 @@ jobs:
           project_id: ${{ secrets.GKE_PROJECT_ID }}
     
     - name: Authenticate Docker to Artifact Registry
-      run: gcloud auth configure-docker us-east1-docker.pkg.dev
+      run: gcloud auth configure-docker ${{ secrets.ARTIFACT_REGISTRY_LOCATION }}-docker.pkg.dev
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
@@ -109,8 +106,6 @@ jobs:
             REACT_APP_VERSION=${{ github.run_number }}
             DOMAIN_NAME=${{ env.DOMAIN_NAME }}
       
-    
-    
     - name: Set NAMESPACE
       run: echo "NAMESPACE=$(echo ${{ env.DOMAIN_NAME }} | sed 's/\.com//')" >> $GITHUB_ENV
     
@@ -123,7 +118,7 @@ jobs:
           gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} --zone ${{ env.GKE_ZONE }}
           kubectl set image deployment/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }} ${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}=${{ env.IMAGE }}:${{ github.sha }} --namespace=$NAMESPACE
           kubectl rollout status deployment/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }} --namespace=$NAMESPACE
-   # need to delete old replicasets here
+   
     
     # We could set up an ingress to save on IP usage but we'd need to handle grabbing/updating the SSL certificate here
 
