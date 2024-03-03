@@ -1,4 +1,4 @@
-name: Docker Build and Push to AWS ECR
+name: Docker Build and Push to GCP Artifact Registry, deploy to GKE, and update Cloudflare DNS
 
 on:
   push:
@@ -18,16 +18,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      AWS_REGION: ${{ secrets.AWS_REGION }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-      ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
-      IMAGE_TAG: ${{ github.sha }}
-      TASK: ${{ vars.TASK }} # This is the name of the task definition for ECS, set in the repository variables
-      BUCKET_NAME: ${{ vars.BUCKET_NAME }} # This is the name of the S3 bucket where the certificates are stored, set in the repository variables
-      DOMAIN_NAME: ${{ vars.DOMAIN_NAME }} # This is the domain name of the website, set in the repository variables
-      SUB_DOMAIN: ${{ github.ref == 'refs/heads/dev' && 'dev' || github.ref == 'refs/heads/master' && 'www' || '' }}
+      
+      #SUB_DOMAIN: ${{ github.ref == 'refs/heads/dev' && 'dev' || github.ref == 'refs/heads/master' && 'www' || '' }}
+      PROJECT_ID: ${{ secrets.DEV_GCP_PROJECT_ID }}
+      GKE_PROJECT_ID: ${{ secrets.GKE_PROJECT_ID }}
+      GKE_CLUSTER: ${{ secrets.GKE_CLUSTER }}
+      GKE_ZONE: ${{ secrets.GKE_ZONE }}
+      BUCKET_NAME: ${{ vars.BUCKET_NAME }} 
+      DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
+      PROJECT: ${{ vars.PROJECT }}
+      #IMAGE: ${{ secrets.ARTIFACT_REGISTRY_LOCATION }}-docker.pkg.dev/${{ secrets.DEV_GCP_PROJECT_ID }}/${{ vars.PROJECT }}-${{ env.SUB_DOMAIN }}/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}
+      #IMAGE: us-east1-docker.pkg.dev/${{ secrets.DEV_GCP_PROJECT_ID }}/resume-dev/resume-dev
     
     steps:
     - name: Checkout code
@@ -39,7 +40,9 @@ jobs:
         npm test
       if: github.ref == 'refs/heads/dev' # The plan is to merge dev into master only if the tests pass. Since the dev branch is being pulled into master, we don't need to run the tests again for master
       # End of CI
-
+     
+    
+    
     - name: Set subdomain for dev branch
       run: echo "SUB_DOMAIN=dev" >> $GITHUB_ENV
       if: github.ref == 'refs/heads/dev'
@@ -48,70 +51,81 @@ jobs:
       run: echo "SUB_DOMAIN=www" >> $GITHUB_ENV
       if: github.ref == 'refs/heads/master'
     
+    - name: Set IMAGE
+      run: echo "IMAGE=${{ secrets.ARTIFACT_REGISTRY_LOCATION }}-docker.pkg.dev/${{ secrets.PROD_GCP_PROJECT_ID }}/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}" >> $GITHUB_ENV  
+
+
       # Start of CD
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v4
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
       with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
-
-    - name: Copy certificates from S3
-      run: |
-        mkdir -p ./letsencrypt/live/$DOMAIN_NAME/
-        aws s3 cp s3://${{ env.BUCKET_NAME }}/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/fullchain.pem ./letsencrypt/live/${{ env.DOMAIN_NAME }}/fullchain.pem
-        aws s3 cp s3://${{ env.BUCKET_NAME }}/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/privkey.pem ./letsencrypt/live/${{ env.DOMAIN_NAME }}/privkey.pem
-
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v2
-      with:
-        mask-password: true
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
     
+    - name: Set up Google Cloud SDK for GCP Project
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: ${{ secrets.DEV_GCP_PROJECT_ID }}
+
+    # If we decide to handle SSL through a k8s ingress, we can remove this step as well as the steps in Dockerfile
+    - name: Copy certificates from GCS
+      run: |
+        mkdir -p ./letsencrypt/live/${{ env.DOMAIN_NAME }}/
+        gsutil cp gs://${{ env.BUCKET_NAME }}/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/fullchain.pem ./letsencrypt/live/${{ env.DOMAIN_NAME }}/fullchain.pem
+        gsutil cp gs://${{ env.BUCKET_NAME }}/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/privkey.pem ./letsencrypt/live/${{ env.DOMAIN_NAME }}/privkey.pem
+
     - name: Update index.html with run number
       run: sed -i 's/RUN_NUMBER_PLACEHOLDER/${{ github.run_number }}/g' ./public/index.html
-
-    - name: Build, tag, and push image to Amazon ECR
+    
+    - name: Install Google Cloud SDK
       run: |
-        docker build --build-arg REACT_APP_GIT_BRANCH=${GITHUB_REF##*/} --build-arg REACT_APP_VERSION=${{ github.run_number }} --build-arg DOMAIN_NAME=$DOMAIN_NAME -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        curl https://sdk.cloud.google.com | bash
+        source /home/runner/.bashrc
+        gcloud version
+    
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+          credentials_json: ${{ secrets.GKE_SA_KEY }}
+  
+    - name: Set up Google Cloud SDK for GKE Project
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+          project_id: ${{ secrets.GKE_PROJECT_ID }}
+    
+    - name: Authenticate Docker to Artifact Registry
+      run: gcloud auth configure-docker us-east1-docker.pkg.dev
 
-    - name: Register new task definition
-      id: register
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+          context: .
+          push: true
+          tags: ${{ env.IMAGE }}:${{ github.sha }}, ${{ env.IMAGE }}:latest
+          build-args: |
+            REACT_APP_GIT_BRANCH=${{ github.ref_name }}
+            REACT_APP_VERSION=${{ github.run_number }}
+            DOMAIN_NAME=${{ env.DOMAIN_NAME }}
+      
+    
+    
+    - name: Set NAMESPACE
+      run: echo "NAMESPACE=$(echo ${{ env.DOMAIN_NAME }} | sed 's/\.com//')" >> $GITHUB_ENV
+    
+    - name: Install gcloud components
       run: |
-        TASK_DEF=$(aws ecs register-task-definition --family ${{ env.TASK }}-${{ env.SUB_DOMAIN }} --requires-compatibilities FARGATE --network-mode awsvpc --execution-role-arn ${{ secrets.ECS_TASK_EXECUTION_ROLE_ARN }} --cpu 256 --memory 512 --container-definitions "[{\"name\":\"$TASK-$SUB_DOMAIN\",\"image\":\"$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG\",\"portMappings\":[{\"containerPort\":80,\"hostPort\":80,\"protocol\":\"tcp\"},{\"containerPort\":443,\"hostPort\":443,\"protocol\":\"tcp\"}],\"logConfiguration\":{\"logDriver\":\"awslogs\",\"options\":{\"awslogs-create-group\":\"true\",\"awslogs-group\":\"/ecs/$TASK-$SUB_DOMAIN\",\"awslogs-region\":\"us-east-1\",\"awslogs-stream-prefix\":\"ecs\"}}}]")
-        TASK_DEF_ARN=$(echo $TASK_DEF | jq -r '.taskDefinition.taskDefinitionArn')
-        echo "TASK_DEF_ARN=$TASK_DEF_ARN" >> $GITHUB_ENV
+        gcloud components install kubectl gke-gcloud-auth-plugin
 
-    - name: Update ECS service
+    - name: Deploy to GKE
       run: |
-        aws ecs update-service --cluster ${{ env.TASK }} --service ${{ env.TASK }}-${{ env.SUB_DOMAIN }} --task-definition ${{ env.TASK_DEF_ARN }}
-
-    - name: Wait for service to be stable # If we remove this step, it's possible more than one task is running on the cluster which confuses the next step
-      run: |
-        aws ecs wait services-stable --cluster ${{ env.TASK }} --services ${{ env.TASK }}-${{ env.SUB_DOMAIN }}
-   
-
-    - name: Get running task ARN
-      id: get-task
-      run: |
-          CLUSTER_EXISTS=$(aws ecs describe-clusters --clusters ${{ env.TASK }} --query 'clusters[?status==`ACTIVE`].clusterArn' --output text)
-          if [ -z "$CLUSTER_EXISTS" ]; then
-            echo "Cluster does not exist or is not active"
-            exit 1
-          fi
-          FAMILY_EXISTS=$(aws ecs list-task-definitions --family-prefix ${{ env.TASK }}-${{ env.SUB_DOMAIN }} --status ACTIVE --query 'taskDefinitionArns' --output text)
-          if [ -z "$FAMILY_EXISTS" ]; then
-            echo "Family does not exist or is not active"
-            exit 1
-          fi
-          TASK_ARN=$(aws ecs list-tasks --cluster ${{ env.TASK }} --family ${{ env.TASK }}-${{ env.SUB_DOMAIN }} --desired-status RUNNING --query 'taskArns' --output text)
-          if [ -z "$TASK_ARN" ]; then
-            echo "No running tasks found"
-            exit 1
-          fi
-          
-          echo "TASK_ARN=$TASK_ARN" >> $GITHUB_ENV
+          gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} --zone ${{ env.GKE_ZONE }}
+          kubectl set image deployment/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }} ${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}=${{ env.IMAGE }}:${{ github.sha }} --namespace=$NAMESPACE
+          kubectl rollout status deployment/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }} --namespace=$NAMESPACE
+   # need to delete old replicasets here
+    
+    # We could set up an ingress to save on IP usage but we'd need to handle grabbing/updating the SSL certificate here
 
     - name: Get Cloudflare DNS record ID
       run: |
@@ -122,12 +136,13 @@ jobs:
         echo "DNS_RECORD_ID=$DNS_RECORD_ID" >> $GITHUB_ENV
     
     
-    
+    # The IPs are mostly static so this won't change often - could look in to performing this only when the IP has changed. Would have to check if the IP has changed in the Cloudflare DNS record
     
     - name: Update Cloudflare DNS record for master
       if: github.ref == 'refs/heads/master'
       run: |
-        NEW_IP=$(aws ecs describe-tasks --cluster ${{ env.TASK }} --tasks ${{ env.TASK_ARN }} --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' --output text | xargs aws ec2 describe-network-interfaces --network-interface-ids | jq -r '.NetworkInterfaces[0].Association.PublicIp')
+        
+        NEW_IP=$(kubectl get service ${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}' --namespace=$NAMESPACE)
         curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records/${{ env.DNS_RECORD_ID }}" \
         -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
         -H "Content-Type: application/json" \
@@ -136,14 +151,15 @@ jobs:
     - name: Update Cloudflare DNS record for dev
       if: github.ref == 'refs/heads/dev'
       run: |
-        NEW_IP=$(aws ecs describe-tasks --cluster ${{ env.TASK }} --tasks ${{ env.TASK_ARN }} --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' --output text | xargs aws ec2 describe-network-interfaces --network-interface-ids | jq -r '.NetworkInterfaces[0].Association.PublicIp')
+        
+        NEW_IP=$(kubectl get service ${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}' --namespace=$NAMESPACE)
         curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records/${{ env.DNS_RECORD_ID }}" \
         -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
         -H "Content-Type: application/json" \
-        --data '{"type":"A","name":"${{ env.SUB_DOMAIN}}.${{ env.DOMAIN_NAME }}","content":"'$NEW_IP'","ttl":120,"proxied":false}'  
+        --data '{"type":"A","name":"${{ env.SUB_DOMAIN}}.${{ env.DOMAIN_NAME }}","content":"'$NEW_IP'","ttl":120,"proxied":false}'
 
-    - name: Check dev website for successful deployment # Route 53 (now cloudflare) takes a while to update, so we need to wait a bit before we check the website. We could improve deploy time by fine tuning this
+    - name: Check dev website for successful deployment # kubectl rollout doesn't exit until the rollout is complete, so the wait time here can be less/nothing 
       run: |
-        sleep 90
+        sleep 5
         curl -s https://${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }} | grep "Build: ${{ github.run_number }}" 
       if: github.ref == 'refs/heads/dev'
