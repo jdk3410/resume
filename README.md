@@ -1,16 +1,17 @@
 # README.md
-Simple resume site written in React hosted in a Docker container, running on AWS ECS Fargate. 
+Simple resume site written in React hosted in a Docker container, running on Google Kubernetes Engine. 
 When an update is pushed to the code of the website, a GitHub Actions workflow compiles a new Docker image,
-pushes the image to Amazon Elastic Container Registry, deploys the container in ECS, then updates 
-the IP of the domain to the new ECS container in Route 53. A separate GitHub Actions workflow runs
+pushes the image to Google Artifact Registry, deploys the container in GKE, then updates 
+the IP of the domain to the GKE service in Cloudflare. A separate GitHub Actions workflow runs
 a Docker container from certbot to renew the Letsencrypt SSL on a monthly basis and copy the certficates
-to a S3 bucket, where they're then retreived during builds.
+to a Cloud Storage bucket, where they're then retreived during builds.
 
   TODO:
 - [ ] Write better README (README should include a diagram of the infrastructure and GitHub actions workflows, and include how to get everything running)
 - [ ] Observability
 
   TODONE/TODIDN'T:
+- ~~[X] Move entire thing out of AWS to GCP (GKS, Artifact Registry, Cloud Storage) and Cloudflare~~
 - ~~[X] Set up e-mail forward~~
 - ~~[X] Set up SSL cert in docker/dockerfile (Needs letsencrypt/Certbot)~~
 - ~~[X] Set up GitHub actions to re-build image when changes are made~~
@@ -33,10 +34,10 @@ to a S3 bucket, where they're then retreived during builds.
 
  Future Improvements:
  - [ ] Install helpers - Terraform file to setup IAM roles
- - [ ] Could make it work on Elastic Kubernetes Service although it's overkill for this purpose
+ - ~~[X] Could make it work on Elastic Kubernetes Service although it's overkill for this purpose~~
  - [ ] Make it extensible so it could be easily useable for any website
  - [ ] Since schedules on GitHub Actions workflows only work on one branch per file, re-write the entire docker.yml into one for each branch
  - [ ] Automerge / AutoPR to pull dev into master
- - [ ] Explore ways to improve deploy time
+ - ~~[X] Explore ways to improve deploy time~~
  - [ ] Increase code coverage 
- - [ ] Move to Google DNS / Cloud Build / Cloud Run - Could simplfy all of the workflows considerably
+ - ~~[ ] Move to Google DNS / Cloud Build / Cloud Run - Could simplfy all of the workflows considerably~~
