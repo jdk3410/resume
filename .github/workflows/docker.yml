@@ -52,7 +52,7 @@ jobs:
       if: github.ref == 'refs/heads/master'
     
     - name: Set IMAGE
-      run: echo "IMAGE=${{ secrets.ARTIFACT_REGISTRY_LOCATION }}-docker.pkg.dev/${{ secrets.DEV_GCP_PROJECT_ID }}/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}" >> $GITHUB_ENV  
+      run: echo "IMAGE=${{ secrets.ARTIFACT_REGISTRY_LOCATION }}-docker.pkg.dev/${{ secrets.PROD_GCP_PROJECT_ID }}/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}" >> $GITHUB_ENV  
 
 
       # Start of CD
