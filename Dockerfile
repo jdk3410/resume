@@ -17,8 +17,9 @@ FROM nginx:1.25.3-alpine
 ARG DOMAIN_NAME
 ENV DOMAIN_NAME=$DOMAIN_NAME
 COPY --from=build-deps /usr/src/app/build /usr/share/nginx/html
-COPY ./letsencrypt/live/$DOMAIN_NAME/fullchain.pem /etc/nginx/certs/fullchain.pem
-COPY ./letsencrypt/live/$DOMAIN_NAME/privkey.pem /etc/nginx/certs/privkey.pem
+#Using k8s ingress now
+#COPY ./letsencrypt/live/$DOMAIN_NAME/fullchain.pem /etc/nginx/certs/fullchain.pem
+#COPY ./letsencrypt/live/$DOMAIN_NAME/privkey.pem /etc/nginx/certs/privkey.pem
 COPY ./nginx.conf /etc/nginx/conf.d/default.conf
 RUN envsubst '$DOMAIN_NAME' < /etc/nginx/conf.d/default.conf > /tmp/default.conf && mv /tmp/default.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80

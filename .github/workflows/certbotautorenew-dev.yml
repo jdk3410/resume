@@ -1,11 +1,12 @@
 # We can't include certbot renew in the main Docker image because if it runs more than a few times it gets throttled by Let's Encrypt. 
 # Instead, we'll use GitHub Actions to run certbot renew once a month and then copy the certificates to Cloud Storage.
+# Handled by an nginx ingress for now
 
 name: Certbot Auto Renew - dev
 
 on:
-  schedule:
-    - cron: '0 12 1 * *' # Run at 12:00 on the first day of the month
+  #schedule:
+  #  - cron: '0 12 1 * *' # Run at 12:00 on the first day of the month
   workflow_dispatch: # Manually run the workflow
 
 jobs:
