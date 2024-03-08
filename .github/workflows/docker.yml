@@ -10,7 +10,7 @@ on:
       - '.github/**'
   schedule:
     - cron: '0 14 1 * *' 
-    # We need to rebuild this monthly to get the latest security updates and to get the new LetsEncrypt certificate
+    # We need to rebuild this monthly to get the latest security updates 
     # This only runs on the default branch, which is master. If we want to run this on both branches automatically we have to split this in to two workflows
   workflow_dispatch:  
 
@@ -65,11 +65,12 @@ jobs:
         project_id: ${{ secrets.DEV_GCP_PROJECT_ID }}
 
     # If we decide to handle SSL through a k8s ingress, we can remove this step as well as the steps in Dockerfile
-    - name: Copy certificates from GCS
-      run: |
-        mkdir -p ./letsencrypt/live/${{ env.DOMAIN_NAME }}/
-        gsutil cp gs://${{ env.BUCKET_NAME }}/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/fullchain.pem ./letsencrypt/live/${{ env.DOMAIN_NAME }}/fullchain.pem
-        gsutil cp gs://${{ env.BUCKET_NAME }}/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/privkey.pem ./letsencrypt/live/${{ env.DOMAIN_NAME }}/privkey.pem
+    # Need to clean this up
+    #- name: Copy certificates from GCS
+    #  run: |
+    #    mkdir -p ./letsencrypt/live/${{ env.DOMAIN_NAME }}/
+    #    gsutil cp gs://${{ env.BUCKET_NAME }}/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/fullchain.pem ./letsencrypt/live/${{ env.DOMAIN_NAME }}/fullchain.pem
+    #    gsutil cp gs://${{ env.BUCKET_NAME }}/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/privkey.pem ./letsencrypt/live/${{ env.DOMAIN_NAME }}/privkey.pem
 
     - name: Update index.html with run number
       run: sed -i 's/RUN_NUMBER_PLACEHOLDER/${{ github.run_number }}/g' ./public/index.html
