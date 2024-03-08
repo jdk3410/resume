@@ -120,37 +120,37 @@ jobs:
    
     
     # We could set up an ingress to save on IP usage but we'd need to handle grabbing/updating the SSL certificate here
-
-    - name: Get Cloudflare DNS record ID
-      run: |
-        DNS_RECORD_NAME="${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}"
-        DNS_RECORD_ID=$(curl -X GET "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records?name=$DNS_RECORD_NAME" \
-        -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
-        -H "Content-Type: application/json" | jq -r '.result[0].id')
-        echo "DNS_RECORD_ID=$DNS_RECORD_ID" >> $GITHUB_ENV
+    # Removing all of this for now, the IP never changes. If we put it back, we should test if the IP has changed before updating the DNS record
+    #- name: Get Cloudflare DNS record ID
+    #  run: |
+    #    DNS_RECORD_NAME="${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}"
+    #    DNS_RECORD_ID=$(curl -X GET "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records?name=$DNS_RECORD_NAME" \
+    #    -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+    #    -H "Content-Type: application/json" | jq -r '.result[0].id')
+    #    echo "DNS_RECORD_ID=$DNS_RECORD_ID" >> $GITHUB_ENV
     
     
     # The IPs are mostly static so this won't change often - could look in to performing this only when the IP has changed. Would have to check if the IP has changed in the Cloudflare DNS record
     
-    - name: Update Cloudflare DNS record for master
-      if: github.ref == 'refs/heads/master'
-      run: |
-        
-        NEW_IP=$(kubectl get service ${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}' --namespace=$NAMESPACE)
-        curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records/${{ env.DNS_RECORD_ID }}" \
-        -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
-        -H "Content-Type: application/json" \
-        --data '{"type":"A","name":"${{ env.SUB_DOMAIN}}.${{ env.DOMAIN_NAME }}","content":"'$NEW_IP'","ttl":120,"proxied":false}'
+    #- name: Update Cloudflare DNS record for master
+    #  if: github.ref == 'refs/heads/master'
+    #  run: |
+    #    
+    #    NEW_IP=$(kubectl get service ${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}' --namespace=$NAMESPACE)
+    #    curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records/${{ env.DNS_RECORD_ID }}" \
+    #    -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+    #    -H "Content-Type: application/json" \
+    #    --data '{"type":"A","name":"${{ env.SUB_DOMAIN}}.${{ env.DOMAIN_NAME }}","content":"'$NEW_IP'","ttl":120,"proxied":false}'
 
-    - name: Update Cloudflare DNS record for dev
-      if: github.ref == 'refs/heads/dev'
-      run: |
-        
-        NEW_IP=$(kubectl get service ${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}' --namespace=$NAMESPACE)
-        curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records/${{ env.DNS_RECORD_ID }}" \
-        -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
-        -H "Content-Type: application/json" \
-        --data '{"type":"A","name":"${{ env.SUB_DOMAIN}}.${{ env.DOMAIN_NAME }}","content":"'$NEW_IP'","ttl":120,"proxied":false}'
+    #- name: Update Cloudflare DNS record for dev
+    #  if: github.ref == 'refs/heads/dev'
+    #  run: |
+    #    
+    #    NEW_IP=$(kubectl get service ${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}' --namespace=$NAMESPACE)
+    #    curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records/${{ env.DNS_RECORD_ID }}" \
+    #    -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+    #    -H "Content-Type: application/json" \
+    #    --data '{"type":"A","name":"${{ env.SUB_DOMAIN}}.${{ env.DOMAIN_NAME }}","content":"'$NEW_IP'","ttl":120,"proxied":false}'
 
     - name: Check dev website for successful deployment # kubectl rollout doesn't exit until the rollout is complete, so the wait time here can be less/nothing 
       run: |

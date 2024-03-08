@@ -2,9 +2,7 @@
 Simple resume site written in React hosted in a Docker container, running on Google Kubernetes Engine. 
 When an update is pushed to the code of the website, a GitHub Actions workflow compiles a new Docker image,
 pushes the image to Google Artifact Registry, deploys the container in GKE, then updates 
-the IP of the domain to the GKE service in Cloudflare. A separate GitHub Actions workflow runs
-a Docker container from certbot to renew the Letsencrypt SSL on a monthly basis and copy the certficates
-to a Cloud Storage bucket, where they're then retreived during builds.
+the IP of the domain to the GKE Ingress controller in Cloudflare. 
 
   TODO:
 - [ ] Write better README (README should include a diagram of the infrastructure and GitHub actions workflows, and include how to get everything running)
