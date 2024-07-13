@@ -77,7 +77,7 @@ jobs:
     
     - name: Install Google Cloud SDK
       run: |
-        curl https://sdk.cloud.google.com | bash
+        curl https://sdk.cloud.google.com | bash -s -- --disable-prompts
         source /home/runner/.bashrc
         gcloud version
     
