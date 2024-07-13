@@ -16,7 +16,7 @@ on:
 
 jobs:
   build:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     env:
       GKE_CLUSTER: ${{ secrets.GKE_CLUSTER }}
       GKE_ZONE: ${{ secrets.GKE_ZONE }}
