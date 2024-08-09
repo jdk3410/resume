@@ -1,4 +1,4 @@
-name: Docker Build and Push to GCP Artifact Registry, deploy to GKE, and update Cloudflare DNS
+name: Docker Build and Push to GCP Artifact Registry, deploy to Kubernetes
 
 on:
   push:
@@ -18,9 +18,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      GKE_CLUSTER: ${{ secrets.GKE_CLUSTER }}
-      GKE_ZONE: ${{ secrets.GKE_ZONE }}
-      BUCKET_NAME: ${{ vars.BUCKET_NAME }} 
+      #GKE_CLUSTER: ${{ secrets.GKE_CLUSTER }}
+      #GKE_ZONE: ${{ secrets.GKE_ZONE }}
+      #BUCKET_NAME: ${{ vars.BUCKET_NAME }} 
       DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
       PROJECT: ${{ vars.PROJECT }}
       
@@ -28,6 +28,14 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+
+    - name: Check for [skip ci] keyword
+      id: check_skip_ci
+      run: |
+        if git log -1 --pretty=%B | grep -iq '\[skip ci\]'; then
+          echo "Skipping CI as per commit message"
+          exit 0
+        fi
 
     - name: Run npm test
       run: |
@@ -64,13 +72,7 @@ jobs:
       with:
         project_id: ${{ secrets.DEV_GCP_PROJECT_ID }}
 
-    # If we decide to handle SSL through a k8s ingress, we can remove this step as well as the steps in Dockerfile
-    # Need to clean this up
-    #- name: Copy certificates from GCS
-    #  run: |
-    #    mkdir -p ./letsencrypt/live/${{ env.DOMAIN_NAME }}/
-    #    gsutil cp gs://${{ env.BUCKET_NAME }}/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/fullchain.pem ./letsencrypt/live/${{ env.DOMAIN_NAME }}/fullchain.pem
-    #    gsutil cp gs://${{ env.BUCKET_NAME }}/${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}/privkey.pem ./letsencrypt/live/${{ env.DOMAIN_NAME }}/privkey.pem
+    
 
     - name: Update index.html with run number
       run: sed -i 's/RUN_NUMBER_PLACEHOLDER/${{ github.run_number }}/g' ./public/index.html
@@ -86,10 +88,10 @@ jobs:
       with:
           credentials_json: ${{ secrets.GKE_SA_KEY }}
   
-    - name: Set up Google Cloud SDK for GKE Project
-      uses: google-github-actions/setup-gcloud@v2
-      with:
-          project_id: ${{ secrets.GKE_PROJECT_ID }}
+    # - name: Set up Google Cloud SDK for GKE Project
+    #   uses: google-github-actions/setup-gcloud@v2
+    #   with:
+    #       project_id: ${{ secrets.GKE_PROJECT_ID }}
     
     - name: Authenticate Docker to Artifact Registry
       run: gcloud auth configure-docker ${{ secrets.ARTIFACT_REGISTRY_LOCATION }}-docker.pkg.dev
@@ -112,46 +114,12 @@ jobs:
       run: |
         gcloud components install kubectl gke-gcloud-auth-plugin
 
-    - name: Deploy to GKE
-      run: |
-          gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} --zone ${{ env.GKE_ZONE }}
-          kubectl set image daemonset/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }} ${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}=${{ env.IMAGE }}:${{ github.sha }} --namespace=$NAMESPACE
-          kubectl rollout status daemonset/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }} --namespace=$NAMESPACE
+    # - name: Deploy to GKE
+    #   run: |
+    #       gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} --zone ${{ env.GKE_ZONE }}
+    #       kubectl set image daemonset/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }} ${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}=${{ env.IMAGE }}:${{ github.sha }} --namespace=$NAMESPACE
+    #       kubectl rollout status daemonset/${{ env.PROJECT }}-${{ env.SUB_DOMAIN }} --namespace=$NAMESPACE
    
-    
-    # We could set up an ingress to save on IP usage but we'd need to handle grabbing/updating the SSL certificate here
-    # Removing all of this for now, the IP never changes. If we put it back, we should test if the IP has changed before updating the DNS record
-    #- name: Get Cloudflare DNS record ID
-    #  run: |
-    #    DNS_RECORD_NAME="${{ env.SUB_DOMAIN }}.${{ env.DOMAIN_NAME }}"
-    #    DNS_RECORD_ID=$(curl -X GET "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records?name=$DNS_RECORD_NAME" \
-    #    -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
-    #    -H "Content-Type: application/json" | jq -r '.result[0].id')
-    #    echo "DNS_RECORD_ID=$DNS_RECORD_ID" >> $GITHUB_ENV
-    
-    
-    # The IPs are mostly static so this won't change often - could look in to performing this only when the IP has changed. Would have to check if the IP has changed in the Cloudflare DNS record
-    
-    #- name: Update Cloudflare DNS record for master
-    #  if: github.ref == 'refs/heads/master'
-    #  run: |
-    #    
-    #    NEW_IP=$(kubectl get service ${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}' --namespace=$NAMESPACE)
-    #    curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records/${{ env.DNS_RECORD_ID }}" \
-    #    -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
-    #    -H "Content-Type: application/json" \
-    #    --data '{"type":"A","name":"${{ env.SUB_DOMAIN}}.${{ env.DOMAIN_NAME }}","content":"'$NEW_IP'","ttl":120,"proxied":false}'
-
-    #- name: Update Cloudflare DNS record for dev
-    #  if: github.ref == 'refs/heads/dev'
-    #  run: |
-    #    
-    #    NEW_IP=$(kubectl get service ${{ env.PROJECT }}-${{ env.SUB_DOMAIN }}-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}' --namespace=$NAMESPACE)
-    #    curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records/${{ env.DNS_RECORD_ID }}" \
-    #    -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
-    #    -H "Content-Type: application/json" \
-    #    --data '{"type":"A","name":"${{ env.SUB_DOMAIN}}.${{ env.DOMAIN_NAME }}","content":"'$NEW_IP'","ttl":120,"proxied":false}'
-
     - name: Check dev website for successful deployment # kubectl rollout doesn't exit until the rollout is complete, so the wait time here can be less/nothing 
       run: |
         sleep 5
