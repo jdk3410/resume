@@ -37,6 +37,8 @@ const Terminal = () => {
             window.location.href = 'https://asaconfig-webapp.jdk3410.com/';
         } else if (command === 'asaconfig-gitlab') {
             window.location.href = 'https://gitlab.com/personal8152828/asaconfig-webapp';
+        } else if (command === 'blog') {
+            window.location.href = 'https://blog.jdk3410.com/';
         } else if (command === 'exit') {
             commandOutput = 'Crashing this plane... With no survivors!!!';
         } else {
@@ -75,6 +77,7 @@ const Terminal = () => {
                 <a href="/github" data-command="github" onClick={handleLinkClick} style={{color: '#FFFFFF', marginRight: '10px'}}>GitHub</a>
                 <a href="/asaconfig-webapp" data-command="asaconfig-webapp" onClick={handleLinkClick} style={{color: '#FFFFFF', marginRight: '10px'}}>Asaconfig-Webapp</a>
                 <a href="/asaconfig-gitlab" data-command="asaconfig-gitlab" onClick={handleLinkClick} style={{color: '#FFFFFF', marginRight: '10px'}}>Asaconfig-GitLab</a>
+                <a href="/blog" data-command="blog" onClick={handleLinkClick} style={{color: '#FFFFFF', marginRight: '10px'}}>Blog</a>
                 <a href="/exit" data-command="exit" onClick={handleLinkClick} style={{color: '#FFFFFF', marginRight: '10px'}}>Exit</a>
             </nav>
             <p style={{color: '#000000'}}>Description of available options: <strong>resume</strong> (displays résumé), <strong>contact</strong> (displays contact info), <strong>github</strong> (opens GitHub repo for this site), <strong>exit</strong> (leaves site)</p>
