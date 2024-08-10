@@ -1,3 +1,5 @@
+[![Docker Build and Push to GCP Artifact Registry, deploy to Kubernetes](https://github.com/jdk3410/resume/actions/workflows/docker.yml/badge.svg)](https://github.com/jdk3410/resume/actions/workflows/docker.yml)
+
 # README.md
 Simple resume site written in React hosted in a Docker container, running on Google Kubernetes Engine. 
 When an update is pushed to the code of the website, a GitHub Actions workflow compiles a new Docker image,
