@@ -1,8 +1,9 @@
+[![Docker Build and Push to GCP Artifact Registry, deploy to Kubernetes](https://github.com/jdk3410/resume/actions/workflows/docker.yml/badge.svg)](https://github.com/jdk3410/resume/actions/workflows/docker.yml)
+
 # README.md
-Simple resume site written in React hosted in a Docker container, running on Google Kubernetes Engine. 
+Simple resume site written in React hosted in a Docker container, Kubernetes. 
 When an update is pushed to the code of the website, a GitHub Actions workflow compiles a new Docker image,
-pushes the image to Google Artifact Registry, deploys the container in GKE, then updates 
-the IP of the domain to the GKE Ingress controller in Cloudflare. 
+pushes the image to Google Artifact Registry and then updates the Kubernetes deployment with the new image and does a rollout.
 
   TODO:
 - [ ] Write better README (README should include a diagram of the infrastructure and GitHub actions workflows, and include how to get everything running)
