@@ -99,6 +99,7 @@ jobs:
 
     - name: Authenticate to Kubernetes cluster
       run: |
+        mkdir -p $HOME/.kube
         echo "${{ secrets.KUBE_CONFIG }}" | base64 --decode > $HOME/.kube/config
 
     - name: Deploy to Kubernetes
